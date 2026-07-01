@@ -921,20 +921,24 @@ GIMMICKS.whack_approval = ctx => {
   const holes=[];
   for(let r=0;r<ROWS;r++) for(let col=0;col<COLS;col++) holes.push({x:PX+col*(HW+PX),y:PY+r*(HH+PY),label:null,ttl:0});
   const decoys=["반대합니다","보류합니다","거절합니다","검토합니다","동의못함"];
+  const typos=["동의힙니다","동의합니디","동의합니다.","동의합ㄴ니다"];
   let hits=0,done=false,raf=null,tick=0;
   function spawn(){
     const empty=holes.filter(h=>!h.label); if(!empty.length)return;
     const h=empty[Math.floor(Math.random()*empty.length)];
-    h.label=Math.random()<0.45?"동의합니다":decoys[Math.floor(Math.random()*decoys.length)];
+    const r=Math.random();
+    if(r<0.4){h.label="동의합니다";h.green=true;}
+    else if(r<0.65){h.label=typos[Math.floor(Math.random()*typos.length)];h.green=true;} // 초록이지만 오타 함정
+    else{h.label=decoys[Math.floor(Math.random()*decoys.length)];h.green=false;}
     h.ttl=70+Math.random()*40;
   }
-  function update(){tick++;if(tick%55===0)spawn();holes.forEach(h=>{if(h.label&&--h.ttl<=0)h.label=null;});}
+  function update(){tick++;if(tick%55===0)spawn();holes.forEach(h=>{if(h.label&&--h.ttl<=0){h.label=null;h.green=false;}});}
   function draw(){
     g.clearRect(0,0,CW,CH);
     holes.forEach(h=>{
-      g.fillStyle=h.label?(h.label==="동의합니다"?"#27ae60":"#d4dbe5"):"#e2e8f0";
+      g.fillStyle=h.label?(h.green?"#27ae60":"#d4dbe5"):"#e2e8f0";
       g.fillRect(h.x,h.y,HW,HH); g.strokeStyle="#b8c2cc";g.lineWidth=1;g.strokeRect(h.x,h.y,HW,HH);
-      if(h.label){g.fillStyle=h.label==="동의합니다"?"#fff":"#555";g.font="bold 12px 맑은 고딕,sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText(h.label,h.x+HW/2,h.y+HH/2);}
+      if(h.label){g.fillStyle=h.green?"#fff":"#555";g.font="bold 12px 맑은 고딕,sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText(h.label,h.x+HW/2,h.y+HH/2);}
     });
     g.fillStyle="#1e3a5f";g.font="12px 맑은 고딕,sans-serif";g.textAlign="right";g.textBaseline="top";g.fillText(hits+"/3",CW-8,4);
   }
