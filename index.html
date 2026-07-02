@@ -267,6 +267,11 @@ function win(){
   meta.innerHTML="수신: 전 구성원 &nbsp;·&nbsp; 발송: "+hh+":"+mm2+" &nbsp;·&nbsp; 발신: 인사팀";
   p.appendChild(meta);
 
+  const gif=el("img");
+  gif.src="https://media.giphy.com/media/BzCLJGxXQbwH09jzq0/giphy.gif";
+  gif.style.cssText="display:block;margin:20px auto 0;max-width:100%;border-radius:6px;";
+  p.appendChild(gif);
+
   wrap.appendChild(p); stageEl.appendChild(wrap);
 }
 
