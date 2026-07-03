@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300">
+<rect x="40" y="30" width="120" height="90" rx="4" fill="#0A2A52" stroke="#001B3D" stroke-width="3"></rect>
+<circle cx="140" cy="55" r="14" fill="#F4F1EC" opacity="0.85"></circle>
+<rect x="150" y="180 " width="240" height="14" rx="3" fill="#415A77" stroke="#001B3D" stroke-width="3"></rect>
+<rect x="170" y="194" width="14" height="80" fill="#415A77" stroke="#001B3D" stroke-width="3"></rect>
+<rect x="350" y="194" width="14" height="80" fill="#415A77" stroke="#001B3D" stroke-width="3"></rect>
+<g>
+<rect x="210" y="90" width="120" height="84" rx="6" fill="#001B3D" stroke="#001B3D" stroke-width="4"></rect>
+<rect x="218" y="98" width="104" height="68" rx="3" fill="#DCE9F7"></rect>
+<rect x="228" y="106" width="60" height="6" rx="2" fill="#415A77"></rect>
+<rect x="228" y="118" width="84" height="4" rx="2" fill="#7780A9"></rect>
+<rect x="228" y="127" width="84" height="4" rx="2" fill="#7780A9"></rect>
+<rect x="228" y="136" width="66" height="4" rx="2" fill="#7780A9"></rect>
+<rect x="228" y="148" width="34" height="12" rx="3" fill="#06D6A0" stroke="#001B3D" stroke-width="1.5"></rect>
+<rect x="266" y="148" width="34" height="12" rx="3" fill="#EF476F" stroke="#001B3D" stroke-width="1.5"></rect>
+<rect x="262" y="174" width="16" height="8" fill="#001B3D"></rect>
+<rect x="246" y="182" width="48" height="5" rx="2" fill="#001B3D"></rect>
+</g>
+<g transform="translate(360 120)">
+<path d="M0 60c0-9 4-13 14-13s14 4 14 13z" fill="#F4F1EC" stroke="#001B3D" stroke-width="2.5"></path>
+<rect x="4" y="18" width="20" height="26" rx="4" fill="#F4F1EC" stroke="#001B3D" stroke-width="2.5"></rect>
+<path d="M9 14q5-6 10 0" fill="none" stroke="#001B3D" stroke-width="2.5"></path>
+<ellipse cx="14" cy="46" rx="10" ry="3" fill="#6B4A2B" opacity="0.9"></ellipse>
+<path d="M8 8q2-5 0-8M16 10q2-5 0-8" stroke="#7780A9" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+</g>
+<g transform="translate(60 150)">
+<rect x="0" y="30" width="70" height="50" rx="4" fill="#F4F1EC" stroke="#001B3D" stroke-width="3" transform="rotate(-4 35 55)"></rect>
+<rect x="10" y="14" width="70" height="50" rx="4" fill="#F4F1EC" stroke="#001B3D" stroke-width="3" transform="rotate(3 45 39)"></rect>
+<rect x="20" y="0" width="70" height="50" rx="4" fill="#F4F1EC" stroke="#001B3D" stroke-width="3" transform="rotate(-2 55 25)"></rect>
+<path d="M32 14h44M32 24h44M32 34h30" stroke="#7780A9" stroke-width="3" stroke-linecap="round" transform="rotate(-2 55 25)"></path>
+</g>
+<path d="M0 276h480" stroke="#001B3D" stroke-width="4"></path>
+</svg>

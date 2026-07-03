@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64"><g transform="translate(4 4) scale(0.9)">
+<rect x="2" y="10" width="60" height="42" rx="4" fill="#F4F1EC" stroke="#001B3D" stroke-width="3"></rect>
+<path d="M2 14 L32 36 L62 14" fill="none" stroke="#001B3D" stroke-width="3" stroke-linejoin="round"></path>
+<circle cx="50" cy="16" r="13" fill="#FFD166" stroke="#001B3D" stroke-width="3"></circle>
+<path d="M44 16 l4 4 8-8" fill="none" stroke="#001B3D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+</g><text x="70" y="44" font-family="&#39;Arial Black&#39;,&#39;Malgun Gothic&#39;,sans-serif" font-weight="900" font-size="30" fill="#F4F1EC" stroke="#001B3D" stroke-width="1.7999999999999998" paint-order="stroke" letter-spacing="1">SEND TO ALL</text><rect x="70" y="50" width="196" height="5" fill="#FFD166"></rect></svg>
