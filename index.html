@@ -9,133 +9,314 @@ function playSound(name,volume){if(soundMuted||!SOUND_PATHS[name])return;try{con
 document.addEventListener("click",()=>{preloadSounds();},{once:true});
 </script>
 <style>
-  *{box-sizing:border-box;}
-  body{margin:0;font-family:"Malgun Gothic","맑은 고딕",sans-serif;background:#e8ecf0;color:#222;min-height:100vh;}
+  /* ── Design Tokens ── */
+  :root{
+    --navy:#001B3D;
+    --panel:#415A77;
+    --gray:#778DA9;
+    --paper:#F4F1EC;
+    --amber:#FFD166;
+    --green:#06D6A0;
+    --red:#EF476F;
+    --text:#102033;
+    --line:#14263B;
+    --card-shadow:0 4px 0 #000,2px 2px 0 rgba(65,90,119,.5);
+    --btn-shadow:0 4px 0 #001B3D;
+    --btn-shadow-hover:0 5px 0 #001B3D;
+  }
 
-  /* ── Global header ── */
-  #gw-header{background:#1e3a5f;color:#fff;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;box-shadow:0 2px 6px rgba(0,0,0,.25);}
-  .gw-logo{font-size:16px;font-weight:700;letter-spacing:-.2px;}
-  .gw-logo span{font-size:11px;font-weight:400;opacity:.6;margin-left:10px;vertical-align:middle;}
-  #gw-timer-wrap{display:none;align-items:center;gap:8px;font-size:12px;opacity:.8;}
-  #gw-timer-wrap span{font-size:11px;}
-  #timer{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;min-width:44px;text-align:right;color:#fff;}
-  #timer.warn{color:#ff7675;}
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"맑은 고딕","Malgun Gothic",monospace;
+    letter-spacing:-0.3px;
+    background:
+      linear-gradient(rgba(0,27,61,.92),rgba(0,27,61,.92)),
+      repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(65,90,119,.18) 39px,rgba(65,90,119,.18) 40px),
+      repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(65,90,119,.18) 39px,rgba(65,90,119,.18) 40px);
+    background-color:#001B3D;
+    color:#222;
+    min-height:100vh;
+  }
+
+  /* ── Global HUD header ── */
+  #gw-header{
+    background:#001B3D;
+    color:#fff;
+    height:60px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 24px;
+    border-bottom:3px solid #415A77;
+    box-shadow:0 3px 0 #000;
+    position:relative;
+    z-index:10;
+  }
+  .gw-logo{
+    font-size:13px;
+    font-weight:900;
+    letter-spacing:-0.5px;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .gw-logo .logo-badge{
+    font-size:10px;
+    background:#243B63;
+    border:1px solid #415A77;
+    color:#778DA9;
+    padding:2px 8px;
+    border-radius:2px;
+    font-weight:600;
+    letter-spacing:0;
+  }
+
+  /* HUD info bar (stage, target, done) */
+  #hud-info{display:none;align-items:center;gap:0;height:100%;}
+  .hud-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 16px;border-left:1px solid #243B63;height:100%;}
+  .hud-cell:first-child{border-left:none;}
+  .hud-lbl{font-size:9px;color:#778DA9;text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:1px;}
+  .hud-val{font-size:15px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-0.5px;}
+  .hud-val.amber{color:#FFD166;}
+
+  /* Timer wrap */
+  #gw-timer-wrap{display:none;align-items:center;gap:6px;padding-left:16px;border-left:1px solid #243B63;height:100%;}
+  #gw-timer-wrap .t-icon{opacity:.7;display:flex;align-items:center;}
+  #gw-timer-wrap .t-icon svg{width:16px;height:16px;}
+  #timer{
+    font-size:26px;
+    font-weight:900;
+    font-variant-numeric:tabular-nums;
+    min-width:52px;
+    text-align:right;
+    color:#FFD166;
+    text-shadow:1px 1px 0 #000;
+    letter-spacing:-1px;
+  }
+  #timer.warn{
+    color:#EF476F;
+    animation:timerPulse 1s infinite;
+  }
+  @keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.4}}
 
   /* ── Progress bar ── */
-  #progress{height:3px;background:#2d507e;}
-  #progress>div{height:100%;background:#27ae60;width:0;transition:width .4s;}
+  #progress{height:4px;background:#14263B;}
+  #progress>div{height:100%;background:#06D6A0;width:0;transition:width .4s;box-shadow:0 0 6px rgba(6,214,160,.5);}
 
   /* ── Body layout ── */
-  #gw-body{display:flex;gap:20px;padding:24px 32px 40px;max-width:1200px;margin:0 auto;align-items:flex-start;}
+  #gw-body{display:flex;gap:20px;padding:20px 24px 40px;max-width:1100px;margin:0 auto;align-items:flex-start;}
   #gw-left{flex:1;min-width:0;}
-  #gw-right{width:220px;flex-shrink:0;display:none;flex-direction:column;gap:14px;}
+  #gw-right{width:200px;flex-shrink:0;display:none;flex-direction:column;gap:12px;}
 
-  /* ── Document card (used by gimmicks via .card) ── */
-  .card{background:#fff;border:1px solid #d4dbe5;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;margin-bottom:14px;}
-  .doc-title{font-size:13px;font-weight:700;color:#1e3a5f;padding:12px 18px;border-bottom:1px solid #e8ecf0;background:#f5f7fa;margin-bottom:0;}
-  .doc-body{font-size:14px;line-height:1.8;color:#333;padding:18px 18px 6px;}
+  /* ── Document card ── */
+  .card{
+    background:#F4F1EC;
+    border:3px solid #14263B;
+    border-radius:4px;
+    box-shadow:var(--card-shadow);
+    overflow:hidden;
+    margin-bottom:14px;
+  }
+  .doc-title{
+    font-size:13px;font-weight:700;
+    color:#fff;
+    padding:10px 18px;
+    border-bottom:2px solid #14263B;
+    background:linear-gradient(#526D8F,#243B63);
+    margin-bottom:0;
+  }
+  .doc-body{font-size:14px;line-height:1.8;color:#333;padding:0;margin-bottom:14px;}
   .card>.row,.card>button,.card>label,.card>.hint,.card>.warnbox,.card>.progbar,.card>.scrollbox,.card>div:not(.doc-title):not(.doc-body){margin-left:18px;margin-right:18px;}
   .card>button,.card>.row{padding-bottom:0;margin-bottom:14px;}
 
   /* ── Sidebar cards ── */
-  .side-card{background:#fff;border:1px solid #d4dbe5;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:16px;}
-  .side-label{font-size:10px;color:#8fa3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;}
-  .side-val{font-size:14px;font-weight:700;color:#1e3a5f;margin-bottom:12px;}
+  .side-card{
+    background:#F4F1EC;
+    border:2px solid #14263B;
+    border-radius:4px;
+    box-shadow:var(--card-shadow);
+    padding:14px;
+  }
+  .side-label{font-size:9px;color:#415A77;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;font-weight:700;}
+  .side-val{font-size:13px;font-weight:700;color:#14263B;margin-bottom:10px;}
   .side-val:last-child{margin-bottom:0;}
-  .side-divider{height:1px;background:#eef1f5;margin:8px 0;}
+  .side-divider{height:1px;background:#D0CCBF;margin:6px 0;}
 
   /* ── Full-width panels (start / fail / win) ── */
-  .panel-wrap{display:flex;align-items:flex-start;justify-content:center;padding:40px 0;}
-  .panel{background:#fff;border:1px solid #d4dbe5;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.09);padding:44px 52px;max-width:580px;width:100%;}
-  .panel-title{font-size:20px;font-weight:700;color:#1e3a5f;margin-bottom:10px;}
-  .panel-sub{font-size:14px;color:#555;line-height:1.8;margin-bottom:28px;}
+  .panel-wrap{display:flex;align-items:flex-start;justify-content:center;padding:36px 0;min-height:calc(100vh - 80px);}
+  .panel{
+    background:#F4F1EC;
+    border:3px solid #14263B;
+    border-radius:6px;
+    box-shadow:var(--card-shadow);
+    padding:40px 48px;
+    max-width:560px;
+    width:100%;
+    position:relative;
+  }
+  .panel-title{font-size:18px;font-weight:700;color:#14263B;margin-bottom:10px;}
+  .panel-sub{font-size:13px;color:#415A77;line-height:1.8;margin-bottom:24px;}
 
   /* ── Shared UI ── */
   .row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;}
 
-  /* Buttons */
-  button.b{height:36px;padding:0 20px;border:none;border-radius:3px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:filter .12s;letter-spacing:-.1px;}
-  button.b:hover:not(:disabled){filter:brightness(.93);}
-  button.b:active:not(:disabled){filter:brightness(.87);}
-  .b.green{background:#27ae60;color:#fff;}
-  .b.gray{background:#e8ecf0;color:#444;border:1px solid #d0d8e2;}
-  .b.red{background:#c0392b;color:#fff;}
-  .b.big{height:44px;padding:0 32px;font-size:15px;}
-  .b.small{height:30px;padding:0 12px;font-size:12px;}
-  .b.disabled{background:#f0f3f6;color:#a0aab4;border:1px solid #dde2e8;cursor:not-allowed;filter:none;}
+  /* ── Buttons (game style) ── */
+  button.b{
+    height:38px;
+    padding:0 20px;
+    border:2px solid #14263B;
+    border-bottom:4px solid #14263B;
+    border-radius:4px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+    letter-spacing:-0.2px;
+    background:#415A77;
+    color:#fff;
+    box-shadow:var(--btn-shadow);
+    transition:all .08s;
+    position:relative;
+    top:0;
+  }
+  button.b:hover:not(:disabled){
+    filter:brightness(1.1);
+    box-shadow:var(--btn-shadow-hover);
+    top:-2px;
+  }
+  button.b:active:not(:disabled){
+    top:3px;
+    box-shadow:0 1px 0 #001B3D;
+    border-bottom-width:2px;
+    filter:brightness(.95);
+  }
+  .b.green{background:#06D6A0;color:#001B3D;border-color:#04946F;border-bottom-color:#037a5c;}
+  .b.green:hover:not(:disabled){filter:brightness(1.07);}
+  .b.gray{background:#778DA9;color:#fff;border-color:#415A77;border-bottom-color:#2d4057;}
+  .b.red{background:#EF476F;color:#fff;border-color:#b02c4f;border-bottom-color:#8c1e3a;}
+  .b.big{height:48px;padding:0 36px;font-size:16px;font-weight:900;}
+  .b.small{height:30px;padding:0 12px;font-size:12px;border-bottom-width:3px;}
+  .b.disabled{background:#B0B8C4;color:#6a7585;border-color:#8a939e;border-bottom-color:#6a7585;cursor:not-allowed;box-shadow:none;filter:none;}
 
   /* Hint / notice */
-  .hint{font-size:12px;color:#8fa3b8;margin-bottom:10px;line-height:1.5;}
-  .warnbox{background:#fffbf0;border:1px solid #e8d48a;color:#7a600a;padding:10px 14px;border-radius:3px;margin-bottom:12px;font-size:13px;line-height:1.5;}
+  .hint{font-size:12px;color:#415A77;margin-bottom:10px;line-height:1.5;}
+  .warnbox{
+    background:#FFF8E7;
+    border:2px solid #FFD166;
+    border-left:4px solid #FFD166;
+    color:#7a600a;
+    padding:10px 14px;
+    border-radius:3px;
+    margin-bottom:12px;
+    font-size:13px;
+    line-height:1.5;
+    box-shadow:2px 2px 0 rgba(0,0,0,.12);
+  }
 
-  /* Modal overlay + popup */
-  .overlay{position:fixed;inset:0;background:rgba(30,58,95,.38);display:flex;align-items:center;justify-content:center;z-index:50;}
-  .popup{background:#fff;border-radius:4px;padding:0;width:90%;max-width:440px;position:relative;box-shadow:0 4px 24px rgba(0,0,0,.18);overflow:hidden;}
-  .popup .x{position:absolute;top:10px;right:14px;font-size:18px;cursor:pointer;color:#aaa;line-height:1;background:none;border:none;font-family:inherit;}
-  .popup-hdr{background:#f5f7fa;border-bottom:1px solid #e2e8f0;padding:14px 20px;font-size:14px;font-weight:700;color:#1e3a5f;}
-  .popup-body{padding:18px 20px;font-size:14px;color:#444;line-height:1.7;}
-  .popup-footer{padding:12px 20px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px;background:#fafbfc;}
+  /* Modal overlay + popup (retro OS style) */
+  .overlay{position:fixed;inset:0;background:rgba(0,27,61,.6);display:flex;align-items:center;justify-content:center;z-index:50;}
+  .popup{
+    background:#F4F1EC;
+    border:3px solid #14263B;
+    border-radius:4px;
+    padding:0;
+    width:90%;
+    max-width:440px;
+    position:relative;
+    box-shadow:6px 7px 0 #001B3D;
+    overflow:hidden;
+  }
+  .popup .x{position:absolute;top:8px;right:12px;font-size:18px;cursor:pointer;color:#fff;line-height:1;background:none;border:none;font-family:inherit;font-weight:900;opacity:.8;}
+  .popup-hdr{background:linear-gradient(#526D8F,#243B63);border-bottom:2px solid #14263B;padding:12px 18px;font-size:13px;font-weight:700;color:#fff;}
+  .popup-body{padding:16px 18px;font-size:14px;color:#333;line-height:1.7;}
+  .popup-footer{padding:10px 18px;border-top:1px solid #D0CCBF;display:flex;justify-content:flex-end;gap:8px;background:#EAE7E0;}
   .center{text-align:center;}
 
+  /* doc-title as popup header fallback */
+  .popup>.doc-title{background:linear-gradient(#526D8F,#243B63);color:#fff;border-bottom:2px solid #14263B;padding:12px 18px;font-size:13px;font-weight:700;}
+
   /* Inputs & selects */
-  input.txt,select.sel{width:100%;height:36px;padding:0 12px;font-size:14px;border:1px solid #cdd4dd;border-radius:3px;font-family:inherit;outline:none;color:#222;background:#fff;}
-  input.txt:focus,select.sel:focus{border-color:#3d8bcd;box-shadow:0 0 0 2px rgba(61,139,205,.12);}
+  input.txt,select.sel{width:100%;height:36px;padding:0 12px;font-size:14px;border:2px solid #778DA9;border-radius:3px;font-family:inherit;outline:none;color:#222;background:#fff;}
+  input.txt:focus,select.sel:focus{border-color:#415A77;box-shadow:0 0 0 2px rgba(65,90,119,.18);}
   select.sel{cursor:pointer;}
+
+  /* Scrollbars */
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:#D0CCBF;}
+  ::-webkit-scrollbar-thumb{background:#778DA9;border-radius:2px;}
+  ::-webkit-scrollbar-thumb:hover{background:#415A77;}
 
   /* Checkboxes */
   .cbrow{display:flex;align-items:center;gap:10px;padding:9px 12px;font-size:13px;cursor:pointer;border:1px solid transparent;border-radius:3px;transition:background .1s;}
-  .cbrow:hover{background:#f5f7fa;}
-  .cbrow input[type=checkbox]{width:15px;height:15px;accent-color:#27ae60;cursor:pointer;flex-shrink:0;}
+  .cbrow:hover{background:#E8E5DC;}
+  .cbrow input[type=checkbox]{width:15px;height:15px;accent-color:#06D6A0;cursor:pointer;flex-shrink:0;}
 
   /* Word chips */
-  .chip{display:inline-block;padding:6px 14px;background:#f0f4f8;border:1px solid #cdd4dd;border-radius:3px;margin:3px;cursor:pointer;font-size:13px;transition:all .1s;}
-  .chip:hover{background:#e4eaf2;}
-  .chip.on{background:#27ae60;color:#fff;border-color:#27ae60;}
+  .chip{display:inline-block;padding:6px 14px;background:#E8E5DC;border:2px solid #778DA9;border-radius:3px;margin:3px;cursor:pointer;font-size:13px;transition:all .1s;font-weight:600;}
+  .chip:hover{background:#D0CCBF;}
+  .chip.on{background:#06D6A0;color:#001B3D;border-color:#04946F;}
 
   /* CAPTCHA tiles */
-  .tile{display:inline-block;width:30%;margin:1.5%;padding:14px 6px;text-align:center;border:1px solid #cdd4dd;border-radius:3px;cursor:pointer;background:#fafbfc;font-size:13px;vertical-align:top;transition:all .1s;}
-  .tile:hover{background:#f0f4f8;}
-  .tile.on{border-color:#27ae60;background:#eaf6ef;color:#276749;}
+  .tile{display:inline-block;width:30%;margin:1.5%;padding:14px 6px;text-align:center;border:2px solid #778DA9;border-radius:3px;cursor:pointer;background:#EAE7E0;font-size:13px;vertical-align:top;transition:all .1s;font-weight:600;}
+  .tile:hover{background:#D0CCBF;}
+  .tile.on{border-color:#04946F;background:#d6f5ed;color:#037a5c;}
 
   /* Scroll doc */
-  .scrollbox{max-height:200px;overflow:auto;border:1px solid #d4dbe5;border-radius:3px;padding:12px 14px;background:#fafbfc;font-size:13px;line-height:1.8;color:#444;}
+  .scrollbox{max-height:200px;overflow:auto;border:2px solid #778DA9;border-radius:3px;padding:12px 14px;background:#EAE7E0;font-size:13px;line-height:1.8;color:#333;}
 
   /* File list */
-  .filerow{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #d4dbe5;border-radius:3px;margin-bottom:6px;cursor:pointer;background:#fff;font-size:13px;color:#333;transition:background .1s;}
+  .filerow{display:flex;align-items:center;gap:10px;padding:10px 14px;border:2px solid #778DA9;border-radius:3px;margin-bottom:6px;cursor:pointer;background:#EAE7E0;font-size:13px;color:#333;transition:background .1s;}
   .filerow::before{content:"📄";font-size:16px;flex-shrink:0;}
-  .filerow:hover{background:#f5f7fa;border-color:#b8c4d0;}
+  .filerow:hover{background:#D0CCBF;border-color:#415A77;}
 
   /* Stamp */
-  .stampbox{display:inline-block;width:30%;margin:1.5%;height:68px;border:1px dashed #b7c0cc;border-radius:3px;text-align:center;line-height:68px;font-size:12px;vertical-align:top;color:#8fa3b8;background:#fafbfc;}
+  .stampbox{display:inline-block;width:30%;margin:1.5%;height:68px;border:2px dashed #778DA9;border-radius:3px;text-align:center;line-height:68px;font-size:12px;vertical-align:top;color:#778DA9;background:#EAE7E0;}
 
   /* Forbidden zone */
-  .redzone{position:absolute;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.28);border-radius:2px;}
+  .redzone{position:absolute;background:rgba(239,71,111,.1);border:1px solid rgba(239,71,111,.28);border-radius:2px;}
 
   /* Fix-type clickable span */
-  .fixspan{color:inherit;cursor:pointer;}
-  .fixspan:hover{text-decoration:underline;text-decoration-color:#b0b8c4;text-decoration-style:dotted;background:#f5f5f5;}
+  .fixspan{color:#c0392b;cursor:pointer;font-weight:700;border-bottom:1px dashed #c0392b;}
+  .fixspan:hover{background:#fff0f3;}
 
   /* Progress bar */
-  .progbar{height:6px;background:#e2e6ec;border-radius:3px;overflow:hidden;margin-top:10px;}
-  .progbar>div{height:100%;background:#27ae60;width:0;transition:width .15s;}
+  .progbar{height:8px;background:#D0CCBF;border-radius:3px;overflow:hidden;margin-top:10px;border:1px solid #778DA9;}
+  .progbar>div{height:100%;background:#06D6A0;width:0;transition:width .15s;box-shadow:0 0 4px rgba(6,214,160,.4);}
+
   /* legacy compat */
   .center-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;gap:16px;}
-  .big-title{font-size:24px;font-weight:700;color:#1e3a5f;}
+  .big-title{font-size:24px;font-weight:700;color:#14263B;}
 
   /* ── Document card internals ── */
-  .doc-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;background:#f5f7fa;border-bottom:1px solid #e2e8f0;}
-  .doc-card-name{font-size:14px;font-weight:700;color:#1a2f4a;}
-  .doc-status-badge{font-size:11px;padding:3px 10px;border-radius:3px;background:#e8f5e9;color:#2e7d32;font-weight:600;border:1px solid #c8e6c9;}
-  .doc-meta{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #e2e8f0;}
+  .doc-card-hdr{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:11px 18px;
+    background:linear-gradient(#243B63,#1a2f4a);
+    border-bottom:2px solid #14263B;
+  }
+  .doc-card-name{font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.2px;}
+  .doc-status-badge{
+    font-size:10px;padding:3px 10px;border-radius:12px;
+    background:#FFD166;color:#001B3D;font-weight:700;
+    border:1px solid #d4a800;letter-spacing:.3px;
+  }
+  .doc-meta{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #D0CCBF;}
   .doc-meta-row{display:contents;}
-  .dm-label{font-size:11px;color:#8fa3b8;padding:7px 12px 7px 20px;border-right:1px solid #e2e8f0;background:#fafbfc;}
-  .dm-val{font-size:12px;color:#333;padding:7px 20px 7px 10px;}
-  .doc-info-wrap{padding:14px 20px;border-bottom:1px solid #e2e8f0;}
+  .dm-label{font-size:11px;color:#415A77;padding:7px 12px 7px 18px;border-right:1px solid #D0CCBF;background:#EAE7E0;font-weight:600;}
+  .dm-val{font-size:12px;color:#333;padding:7px 18px 7px 10px;background:#F4F1EC;}
+  .doc-info-wrap{padding:12px 18px;border-bottom:1px solid #D0CCBF;background:#EAE7E0;}
   .doc-info-table{width:100%;border-collapse:collapse;font-size:13px;}
-  .doc-info-table th{width:80px;text-align:left;color:#8fa3b8;font-weight:500;padding:4px 0;vertical-align:top;}
+  .doc-info-table th{width:80px;text-align:left;color:#415A77;font-weight:600;padding:4px 0;vertical-align:top;}
   .doc-info-table td{color:#333;padding:4px 0;}
-  .doc-review-area{padding:18px 20px 14px;}
-  .doc-review-label{font-size:11px;color:#8fa3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+  .doc-review-area{padding:16px 18px 12px;background:#F4F1EC;}
+  .doc-review-label{
+    font-size:10px;color:#415A77;
+    text-transform:uppercase;letter-spacing:.8px;
+    margin-bottom:12px;font-weight:700;
+    border-bottom:1px solid #D0CCBF;padding-bottom:6px;
+  }
   /* override card child margins inside review area */
   .doc-review-area .row{margin-left:0;margin-right:0;margin-top:12px;}
   .doc-review-area button{margin-left:0;}
@@ -146,11 +327,47 @@ document.addEventListener("click",()=>{preloadSounds();},{once:true});
   .doc-review-area input.txt,.doc-review-area select.sel{margin:0;}
   /* doc-body inside review area */
   .doc-body{font-size:14px;line-height:1.8;color:#333;padding:0;margin-bottom:14px;}
+
+  /* ── Animations ── */
+  @keyframes stampPop{
+    0%{transform:scale(2.2) rotate(-22deg);opacity:0;}
+    70%{transform:scale(.92) rotate(-10deg);opacity:1;}
+    100%{transform:scale(1) rotate(-12deg);opacity:1;}
+  }
+  @keyframes failShake{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-8px);}
+    40%{transform:translateX(8px);}
+    60%{transform:translateX(-5px);}
+    80%{transform:translateX(5px);}
+  }
+  .fail-shake{animation:failShake .25s linear;}
 </style>
 
 <div id="gw-header">
-  <div class="gw-logo">Send to All <span>재택근무 동의 시스템</span></div>
-  <div id="gw-timer-wrap"><span>남은 시간</span><span id="timer">90</span></div>
+  <div class="gw-logo">
+    <svg width="22" height="22" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect x="10" y="30" width="130" height="100" rx="6" fill="#F4F1EC" stroke="#14263B" stroke-width="10"/><path d="M15 45 L75 90 L135 45" stroke="#14263B" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="158" cy="52" r="36" fill="#EF476F" stroke="#14263B" stroke-width="9"/><text x="150" y="66" font-family="Arial Black" font-size="38" fill="#fff" font-weight="900">!</text></svg>
+    Send to All
+    <span class="logo-badge">전자결재 시스템 v2.4</span>
+  </div>
+  <div id="hud-info">
+    <div class="hud-cell">
+      <div class="hud-lbl">STAGE</div>
+      <div class="hud-val amber" id="side-stage">— / 15</div>
+    </div>
+    <div class="hud-cell">
+      <div class="hud-lbl">결재자</div>
+      <div class="hud-val" id="side-name" style="font-size:13px;">—</div>
+    </div>
+    <div class="hud-cell">
+      <div class="hud-lbl">동의 완료</div>
+      <div class="hud-val" id="side-done">0 / 14</div>
+    </div>
+  </div>
+  <div id="gw-timer-wrap">
+    <div class="t-icon"><svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><circle cx="100" cy="108" r="74" fill="none" stroke="#14263B" stroke-width="9"/><path d="M74 16h52" stroke="#FFD166" stroke-width="9" stroke-linecap="round"/><path d="M100 108V60M100 108l36 22" stroke="#EF476F" stroke-width="10" stroke-linecap="round"/></svg></div>
+    <span id="timer">90</span>
+  </div>
 </div>
 <div id="progress"><div id="progfill"></div></div>
 <div id="gw-body">
@@ -158,13 +375,13 @@ document.addEventListener("click",()=>{preloadSounds();},{once:true});
   <div id="gw-right">
     <div class="side-card">
       <div class="side-label">진행 단계</div>
-      <div class="side-val" id="side-stage">— / 15</div>
+      <div class="side-val" id="side-stage-r">— / 15</div>
       <div class="side-divider"></div>
       <div class="side-label">현재 대상자</div>
-      <div class="side-val" id="side-name">—</div>
+      <div class="side-val" id="side-name-r">—</div>
       <div class="side-divider"></div>
       <div class="side-label">동의 완료</div>
-      <div class="side-val" id="side-done">0 / 14</div>
+      <div class="side-val" id="side-done-r">0 / 14</div>
     </div>
   </div>
 </div>
@@ -184,18 +401,22 @@ function altName(n){ // 1 char difference
 }
 
 // ===== GAME STATE =====
-let state = { stage:1, order:[], teammates:[], timer:90, tInt:null, cleanup:null, locked:false };
+let state = { stage:1, order:[], teammates:[], timer:90, tInt:null, cleanup:null, locked:false, usedWordOrder:false };
 
 function showSidebar(on){
-  const r=$("gw-right"), t=$("gw-timer-wrap");
+  const r=$("gw-right"), t=$("gw-timer-wrap"), h=$("hud-info");
   r.style.display=on?"flex":"none";
   t.style.display=on?"flex":"none";
+  h.style.display=on?"flex":"none";
 }
 function updateSidebar(){
   const mate=state.teammates[(state.stage-1)%state.teammates.length]||"—";
   $("side-stage").textContent=state.stage+" / 15";
   $("side-name").textContent=mate;
   $("side-done").textContent=(state.stage-1)+" / 14";
+  if($("side-stage-r"))$("side-stage-r").textContent=state.stage+" / 15";
+  if($("side-name-r"))$("side-name-r").textContent=mate;
+  if($("side-done-r"))$("side-done-r").textContent=(state.stage-1)+" / 14";
 }
 function clearStage(){
   if(state.tInt){ clearInterval(state.tInt); state.tInt=null; }
@@ -216,6 +437,7 @@ function startTimer(){
 function updateTimer(){
   const t=$("timer"); t.textContent=state.timer;
   t.classList.toggle("warn", state.timer<=10);
+  t.classList.toggle("warning", state.timer<=10);
 }
 
 function fail(reason){
@@ -223,15 +445,28 @@ function fail(reason){
   console.log("[fail]", reason);
   clearStage(); showSidebar(false);
   const wrap=el("div","panel-wrap");
+  wrap.style.cssText="display:flex;align-items:center;justify-content:center;padding:36px 0;min-height:calc(100vh - 80px);";
   const p=el("div","panel");
-  const badge=el("div"); badge.style.cssText="display:inline-block;background:#fdf2f2;border:1px solid #f5c6cb;color:#a94442;font-size:12px;font-weight:600;padding:4px 12px;border-radius:3px;margin-bottom:16px;";
-  badge.textContent="반려";
-  p.appendChild(badge);
-  p.appendChild(el("div","panel-title","승인 요청이 반려되었습니다."));
-  const sub=el("div","panel-sub"); sub.style.color="#666";
+  p.style.cssText="text-align:center;max-width:480px;";
+  p.classList.add("fail-shake");
+  // Stamp
+  const stampWrap=el("div");
+  stampWrap.style.cssText="display:flex;justify-content:center;margin-bottom:20px;";
+  const stamp=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  stamp.setAttribute("width","160");stamp.setAttribute("height","160");stamp.setAttribute("viewBox","0 0 220 220");
+  stamp.style.cssText="animation:stampPop .35s cubic-bezier(.2,1.8,.4,1);";
+  stamp.innerHTML=`<g transform="rotate(-12 110 110)"><circle cx="110" cy="110" r="86" fill="none" stroke="#C62828" stroke-width="10"/><circle cx="110" cy="110" r="69" fill="none" stroke="#C62828" stroke-width="4" stroke-dasharray="10 8"/><text x="110" y="126" text-anchor="middle" font-family="'Malgun Gothic',Arial,sans-serif" font-size="54" font-weight="900" fill="#C62828">반려</text></g>`;
+  stampWrap.appendChild(stamp); p.appendChild(stampWrap);
+  // Title bar style header
+  const titleBar=el("div");
+  titleBar.style.cssText="background:linear-gradient(#526D8F,#243B63);color:#fff;padding:10px 18px;margin:-1px -1px 20px;border-radius:3px 3px 0 0;font-size:14px;font-weight:700;text-align:left;border:2px solid #14263B;border-bottom:none;";
+  titleBar.textContent="⚠ 승인 요청이 반려되었습니다.";
+  p.insertBefore(titleBar, p.firstChild);
+  const sub=el("div","panel-sub");
+  sub.style.textAlign="left";
   sub.textContent="재택근무 시행 동의 절차가 중단되었습니다. 처음부터 다시 진행해주세요.";
   p.appendChild(sub);
-  const b=el("button","b green","처음부터 다시 진행"); b.onclick=()=>startRun(); p.appendChild(b);
+  const b=el("button","b red big","↩ 다시 도전하기"); b.style.width="100%"; b.onclick=()=>startRun(); p.appendChild(b);
   wrap.appendChild(p); stageEl.appendChild(wrap);
 }
 
@@ -246,31 +481,52 @@ function success(){
 function win(){
   playSound('game_clear'); clearStage(); showSidebar(false);
   const wrap=el("div","panel-wrap");
+  wrap.style.cssText="display:flex;align-items:center;justify-content:center;padding:36px 0;min-height:calc(100vh - 80px);";
   const p=el("div","panel");
-  p.style.cssText+="max-width:440px;text-align:center;padding:40px 32px;";
+  p.style.cssText="max-width:480px;text-align:center;padding:0;overflow:hidden;";
 
-  const stamp=el("div");
-  stamp.style.cssText="display:inline-block;border:3px solid #27ae60;border-radius:50%;width:72px;height:72px;line-height:72px;font-size:32px;color:#27ae60;margin-bottom:20px;";
-  stamp.textContent="✓";
-  p.appendChild(stamp);
+  // Title bar
+  const titleBar=el("div");
+  titleBar.style.cssText="background:linear-gradient(#526D8F,#243B63);color:#fff;padding:12px 20px;font-size:14px;font-weight:900;letter-spacing:-.2px;border-bottom:2px solid #14263B;";
+  titleBar.textContent="📢 전사공지 발송 완료";
+  p.appendChild(titleBar);
 
-  p.appendChild(el("div","panel-title","주 1회 재택근무가 시작됩니까?"));
+  const inner=el("div");
+  inner.style.cssText="padding:28px 36px;";
+  p.appendChild(inner);
+
+  // Complete stamp
+  const stampWrap=el("div");
+  stampWrap.style.cssText="display:flex;justify-content:center;margin-bottom:16px;";
+  const stamp=document.createElementNS("http://www.w3.org/2000/svg","svg");
+  stamp.setAttribute("width","140");stamp.setAttribute("height","140");stamp.setAttribute("viewBox","0 0 220 220");
+  stamp.style.cssText="animation:stampPop .35s cubic-bezier(.2,1.8,.4,1);";
+  stamp.innerHTML=`<g transform="rotate(-12 110 110)"><circle cx="110" cy="110" r="86" fill="none" stroke="#1B9B50" stroke-width="10"/><circle cx="110" cy="110" r="69" fill="none" stroke="#1B9B50" stroke-width="4" stroke-dasharray="10 8"/><text x="110" y="126" text-anchor="middle" font-family="'Malgun Gothic',Arial,sans-serif" font-size="54" font-weight="900" fill="#1B9B50">완료</text></g>`;
+  stampWrap.appendChild(stamp); inner.appendChild(stampWrap);
+
+  const title=el("div","panel-title","주 1회 재택근무가 시작됩니까?");
+  title.style.cssText="font-size:18px;font-weight:900;color:#14263B;margin-bottom:10px;";
+  inner.appendChild(title);
 
   const sub=el("div","panel-sub");
-  sub.style.cssText="color:#555;font-size:14px;line-height:1.9;margin:16px 0 24px;";
-  sub.innerHTML="전 구성원 동의 완료.<br>다음 주 수요일부터 시행되겠냐?<br><span style='font-size:13px;color:#c0392b;font-weight:bold;'>속았습니다.</span>";
-  p.appendChild(sub);
+  sub.style.cssText="color:#415A77;font-size:13px;line-height:1.9;margin:10px 0 20px;";
+  sub.innerHTML="전 구성원 동의 완료.<br>다음 주 수요일부터 시행되겠냐?<br><span style='font-size:13px;color:#EF476F;font-weight:bold;'>속았습니다.</span>";
+  inner.appendChild(sub);
 
   const meta=el("div");
-  meta.style.cssText="font-size:11px;color:#b0bac4;border-top:1px solid #edf0f4;padding-top:16px;line-height:2;";
+  meta.style.cssText="font-size:11px;color:#778DA9;border-top:1px solid #D0CCBF;padding-top:12px;line-height:2;margin-bottom:16px;";
   const now=new Date(); const hh=String(now.getHours()).padStart(2,"0"); const mm2=String(now.getMinutes()).padStart(2,"0");
   meta.innerHTML="수신: 전 구성원 &nbsp;·&nbsp; 발송: "+hh+":"+mm2+" &nbsp;·&nbsp; 발신: 인사팀";
-  p.appendChild(meta);
+  inner.appendChild(meta);
 
   const gif=el("img");
   gif.src="https://media.giphy.com/media/BzCLJGxXQbwH09jzq0/giphy.gif";
-  gif.style.cssText="display:block;margin:20px auto 0;max-width:100%;border-radius:6px;";
-  p.appendChild(gif);
+  gif.style.cssText="display:block;margin:0 auto 20px;max-width:100%;border:2px solid #14263B;border-radius:4px;";
+  inner.appendChild(gif);
+
+  const b=el("button","b big","처음으로");
+  b.style.cssText="width:100%;background:#FFD166;color:#001B3D;border-color:#d4a800;border-bottom-color:#a07800;font-weight:900;";
+  b.onclick=()=>startScreen(); inner.appendChild(b);
 
   wrap.appendChild(p); stageEl.appendChild(wrap);
 }
@@ -349,11 +605,12 @@ STEPS.flashing = (con,sc)=>{ const row=el("div","row"); const n=4; const correct
 STEPS.warningMem = (con,sc)=>{ const typos=["동의합니디","동의힙니다","동의합니다.","동의합ㄴ니다"]; const trap=typos[Math.floor(Math.random()*typos.length)]; const w=el("div","warnbox","초록색 버튼을 믿지 마세요"); con.appendChild(w); const to=setTimeout(()=>w.remove(),2000); const row=el("div","row"); const g=el("button","b green",trap); g.onclick=()=>sc.onFail("초록색 버튼을 믿었습니다"); const gr=el("button","b gray","동의합니다"); gr.onclick=()=>sc.onSuccess(); row.append(g,gr); con.appendChild(row); return ()=>clearTimeout(to); };
 STEPS.sentence = (con,sc)=>{ const good="주 1회 재택근무 시행에 동의합니다"; const opts=shuffle([good,"월 1회 재택근무 시행에 동의합니다","주 1회 재택근무 폐지에 동의합니다","주 2회 재택근무 시행에 동의합니다"]); opts.forEach(o=>{ const b=el("button","b gray",o); b.style.cssText="display:block;width:100%;margin:6px 0;text-align:left;"; b.onclick=()=>o===good?sc.onSuccess():sc.onFail("정확한 문장이 아닙니다"); con.appendChild(b); }); return null; };
 STEPS.checkboxText = (con,sc)=>{ const l=el("label","cbrow"); const cb=el("input"); cb.type="checkbox"; const txt=document.createTextNode(" 동의합니다"); cb.onchange=()=>{ txt.textContent=cb.checked?" 동의하지 않습니다":" 동의합니다"; }; l.append(cb,txt); con.appendChild(l); const b=el("button","b green","제출"); b.style.marginTop="8px"; con.appendChild(b); b.onclick=()=>{ if(cb.checked)sc.onFail("'동의하지 않습니다' 상태로 제출했습니다"); else sc.onSuccess(); }; return null; };
-STEPS.slider = (con,sc)=>{ const s=el("input"); s.type="range"; s.min=0; s.max=100; s.value=0; s.style.width="100%"; con.appendChild(s); const bwrap=el("div"); con.appendChild(bwrap); const typos=["동의합니디","동의힙니다","동의합니다.","동의합ㄴ니다","동의합 니다"]; s.oninput=()=>{ const v=+s.value; bwrap.innerHTML=""; if(v>0){ if(v>=70&&v<=85){ const b=el("button","b green","동의합니다"); b.onclick=()=>sc.onSuccess(); bwrap.appendChild(b); } else { const typo=typos[Math.floor(v/20)%typos.length]; const b=el("button","b green",typo); b.onclick=()=>sc.onFail("올바른 범위가 아닙니다"); bwrap.appendChild(b); } } }; return null; };
+STEPS.slider = (con,sc)=>{ const lo=10+Math.floor(Math.random()*60); const hi=lo+10+Math.floor(Math.random()*15); const s=el("input"); s.type="range"; s.min=0; s.max=100; s.value=0; s.style.width="100%"; con.appendChild(s); const bwrap=el("div"); con.appendChild(bwrap); const typos=["동의합니디","동의힙니다","동의합니다.","동의합ㄴ니다","동의합 니다"]; s.oninput=()=>{ const v=+s.value; bwrap.innerHTML=""; if(v>0){ if(v>=lo&&v<=hi){ const b=el("button","b green","동의합니다"); b.onclick=()=>sc.onSuccess(); bwrap.appendChild(b); } else { const typo=typos[Math.floor(v/20)%typos.length]; const b=el("button","b green",typo); b.onclick=()=>sc.onFail("올바른 범위가 아닙니다"); bwrap.appendChild(b); } } }; return null; };
 STEPS.dropdown = (con,sc)=>{ const sel=el("select","sel"); const good="주 1회 재택근무 시행"; ["선택하세요","주 1회 재택근무 폐지",good,"월 1회 재택근무 시행","재택근무 검토"].forEach(o=>{ const op=el("option",null,o); op.value=o; sel.appendChild(op); }); con.appendChild(sel); const b=el("button","b green","확인"); b.style.marginTop="8px"; con.appendChild(b); b.onclick=()=>sel.value===good?sc.onSuccess():sc.onFail("드롭다운 선택이 올바르지 않습니다"); return null; };
 STEPS.disappearing = (con,sc)=>{ const typos=["동의합니디","동의힙니다","동의합니다.","동의합ㄴ니다"]; const trap=typos[Math.floor(Math.random()*typos.length)]; const row=el("div","row"); const real=el("button","b green","동의합니다"); real.onclick=()=>sc.onSuccess(); const fake=el("button","b green",trap); fake.onclick=()=>sc.onFail("가짜 버튼을 눌렀습니다"); fake.style.display="none"; row.append(real,fake); con.appendChild(row); let vis=true; const iv=setInterval(()=>{ vis=!vis; real.style.display=vis?"":"none"; fake.style.display=vis?"none":""; },1500); return ()=>clearInterval(iv); };
 STEPS.fix = (con,sc)=>{ const scenarios=[[{text:"재택근무 "},{fix:{wrong:"폐지",options:["폐지","시행","보류"],correct:"시행"}},{text:"에 동의합니다"}],[{fix:{wrong:"출근근무",options:["출근근무","재택근무","단축근무"],correct:"재택근무"}},{text:" 시행에 동의합니다"}],[{fix:{wrong:"월",options:["월","주","일"],correct:"주"}},{text:" 1회 재택근무 시행에 동의합니다"}],[{text:"대상: "},{fix:{wrong:"일부 구성원",options:["일부 구성원","전 구성원","경영진"],correct:"전 구성원"}},{text:" — 동의합니다"}],[{text:"재택근무 시행에 "},{fix:{wrong:"동의하지 않습니다",options:["동의하지 않습니다","동의합니다","반대합니다"],correct:"동의합니다"}}]]; const parts=scenarios[Math.floor(Math.random()*scenarios.length)]; let toFix=0; parts.forEach(p=>{if(p.fix)toFix++;}); const row=el("div"); row.style.cssText="font-size:14px;line-height:2.2;margin-bottom:8px;"; parts.forEach(p=>{ if(p.fix){ const span=el("span","fixspan",p.fix.wrong); span.onclick=()=>showFixMenu(span,p.fix,()=>{toFix--;},sc); row.appendChild(span); } else row.appendChild(document.createTextNode(p.text)); }); con.appendChild(row); const btn=el("button","b green","동의합니다"); btn.onclick=()=>{ if(toFix===0) sc.onSuccess(); else sc.onFail("수정 미완료"); }; con.appendChild(btn); return null; };
-STEPS.wordOrderStep = (con,sc)=>{ const order=["주 1회","재택근무","시행에","동의합니다"]; let next=0; const out=el("div"); out.style.cssText="margin:8px 0;font-weight:bold;min-height:20px;"; con.appendChild(out); const wrap=el("div"); shuffle(order.slice()).forEach(w=>{ const chip=el("span","chip",w); chip.onclick=()=>{ if(chip.classList.contains("on"))return; if(w!==order[next]) return sc.onFail("단어 순서가 틀렸습니다"); chip.classList.add("on"); out.textContent+=(out.textContent?" ":"")+w; next++; if(next===order.length)sc.onSuccess(); }; wrap.appendChild(chip); }); con.appendChild(wrap); return null; };
+const _wordOrderStepFn = (con,sc)=>{ const order=["주 1회","재택근무","시행에","동의합니다"]; let next=0; const out=el("div"); out.style.cssText="margin:8px 0;font-weight:bold;min-height:20px;"; con.appendChild(out); const wrap=el("div"); shuffle(order.slice()).forEach(w=>{ const chip=el("span","chip",w); chip.onclick=()=>{ if(chip.classList.contains("on"))return; if(w!==order[next]) return sc.onFail("단어 순서가 틀렸습니다"); chip.classList.add("on"); out.textContent+=(out.textContent?" ":"")+w; next++; if(next===order.length)sc.onSuccess(); }; wrap.appendChild(chip); }); con.appendChild(wrap); return null; };
+STEPS.wordOrderStep = (con,sc)=>{ if(state.usedWordOrder){ return sc.onSuccess(); } state.usedWordOrder=true; return _wordOrderStepFn(con,sc); };
 STEPS.holdStep = (con,sc)=>{ const b=el("button","b green","동의합니다"); con.appendChild(b); const pb=el("div","progbar"); const fill=el("div"); pb.appendChild(fill); con.appendChild(pb); let start=0,iv=null,done=false,popShown=false,pop=null; const stop=()=>{if(done)return;if(iv){clearInterval(iv);iv=null;}fill.style.width="0";if(pop){pop.remove();pop=null;}sc.onFail("홀드를 해제했습니다");}; b.onmousedown=()=>{if(done)return;start=Date.now();iv=setInterval(()=>{const p=Math.min(1,(Date.now()-start)/2000);fill.style.width=(p*100)+"%";if(p>=0.35&&!popShown){popShown=true;pop=el("div","warnbox","⚠ 시스템 오류가 발생했습니다. 확인 버튼을 누르세요.");pop.style.cssText+="position:relative;z-index:1;cursor:pointer;";pop.onclick=()=>{};con.appendChild(pop);}if(p>=1){done=true;clearInterval(iv);if(pop){pop.remove();pop=null;}sc.onSuccess();}},30);}; b.onmouseup=stop;b.onmouseleave=stop; return ()=>{if(iv)clearInterval(iv);}; };
 STEPS.popupCancel = (con,sc)=>{ const b=el("button","b green","동의합니다"); con.appendChild(b); b.onclick=()=>popup(sc,"동의를 취소하시겠습니까?",[{label:"예",cls:"red",win:false,reason:"동의를 취소했습니다"},{label:"아니오",cls:"gray",win:true}]); return null; };
 STEPS.popupDouble = (con,sc)=>{ const b=el("button","b green","동의합니다"); con.appendChild(b); b.onclick=()=>popup(sc,"동의하지 않음을 취소하시겠습니까?",[{label:"예",cls:"gray",win:true},{label:"아니오",cls:"gray",win:false,reason:"이중부정"}]); return null; };
@@ -846,29 +1103,81 @@ GIMMICKS.assemble_approval = ctx => {
   c.appendChild(pieceWrap); return null;
 };
 
-GIMMICKS.hanko_approval = ctx => {
-  const c = docCard(ctx.teammate, "문서 검토 절차를 완료해주세요."); stageEl.appendChild(c);
-  const sigLabels=shuffle([ctx.teammate,altName(ctx.teammate),altName(ctx.teammate)]);
-  const wrap=el("div"); wrap.style.cssText="position:relative;margin-top:12px;background:#fafbfc;border:1px solid #e2e8f0;border-radius:3px;padding:16px;";
+GIMMICKS.spot_difference = ctx=>{
+  const c=docCard(ctx.teammate,"첨부 문서를 검토해주세요."); stageEl.appendChild(c);
+
+  // Each diff: {row, col, field, original, changed}
+  // Grid of cells displayed as two side-by-side tables
+  const FIELDS=["기안자","결재자","시행일","대상","부서","결재구분","제목","비고","기준","분류"];
+  const VALUES={
+    "기안자":["김민준","이서연","박지호","최수아","정다은"],
+    "결재자":["부서장","팀장","본부장","임원","대표이사"],
+    "시행일":["2024.06.03","2024.07.01","2024.05.20","2024.08.12","2024.09.02"],
+    "대상":["전 구성원","일부 구성원","신입사원","정규직","계약직"],
+    "부서":["경영지원팀","인사팀","총무팀","기획팀","운영팀"],
+    "결재구분":["전자결재","서면결재","긴급결재","일반결재","협조결재"],
+    "제목":["재택근무 시행안","재택근무 폐지안","원격근무 운영안","재택근무 연장안","근무제도 개편안"],
+    "비고":["없음","첨부파일 참조","별도 공지 예정","추후 안내","팀장 재량"],
+    "기준":["팀별 업무 상황","개인 신청 기준","부서장 승인","격주 순환","월 1회"],
+    "분류":["복리후생","인사규정","업무지침","내부결재","운영정책"]
+  };
+
+  const usedFields=shuffle(FIELDS).slice(0,6);
+  // Build base row values
+  const baseData=usedFields.map(f=>({f,v:VALUES[f][Math.floor(Math.random()*VALUES[f].length)]}));
+
+  // Pick 3 random rows to differ
+  const diffIdxs=shuffle([0,1,2,3,4,5]).slice(0,3);
+  const diffs=new Set(diffIdxs);
+  let found=0,done=false;
+
+  const wrap=el("div"); wrap.style.cssText="display:flex;gap:8px;margin-top:8px;font-size:12px;";
+
+  function makeTable(isRight){
+    const tbl=document.createElement("table");
+    tbl.style.cssText="border-collapse:collapse;flex:1;";
+    baseData.forEach((row,i)=>{
+      let val=row.v;
+      if(isRight&&diffs.has(i)){
+        // pick different value
+        const opts=VALUES[row.f].filter(v=>v!==row.v);
+        val=opts[Math.floor(Math.random()*opts.length)];
+      }
+      const tr=document.createElement("tr");
+      const th=document.createElement("th");
+      th.style.cssText="background:#f0f0f0;border:1px solid #ccc;padding:3px 6px;text-align:left;color:#445;font-weight:normal;white-space:nowrap;";
+      th.textContent=row.f;
+      const td=document.createElement("td");
+      td.style.cssText="border:1px solid #ccc;padding:3px 8px;background:#fff;cursor:"+(isRight?"pointer":"default")+";";
+      td.textContent=val;
+      if(isRight){
+        td.dataset.idx=i;
+        td.dataset.isDiff=diffs.has(i)?"1":"0";
+        td.onclick=()=>{
+          if(done)return;
+          if(td.dataset.isDiff==="1"&&!td.dataset.marked){
+            td.dataset.marked="1";
+            td.style.background="#fff3cd";
+            td.style.outline="2px solid #e67e22";
+            found++;
+            if(found===3){done=true;setTimeout(()=>ctx.onSuccess(),300);}
+          } else if(!td.dataset.marked){
+            done=true; ctx.onFail("오답");
+          }
+        };
+      }
+      tr.append(th,td); tbl.appendChild(tr);
+    });
+    return tbl;
+  }
+
+  const lblL=el("div"); lblL.style.cssText="text-align:center;font-size:11px;color:#666;margin-bottom:2px;"; lblL.textContent="원본";
+  const lblR=el("div"); lblR.style.cssText="text-align:center;font-size:11px;color:#666;margin-bottom:2px;"; lblR.textContent="수신본";
+  const colL=el("div"); colL.style.flex="1"; colL.append(lblL,makeTable(false));
+  const colR=el("div"); colR.style.flex="1"; colR.append(lblR,makeTable(true));
+  wrap.append(colL,colR);
   c.appendChild(wrap);
-  wrap.appendChild(el("div","hint","서명란"));
-  const boxWrap=el("div"); boxWrap.style.cssText="display:flex;gap:12px;flex-wrap:wrap;"; wrap.appendChild(boxWrap);
-  sigLabels.forEach(name=>{
-    const box=el("div"); box.style.cssText="width:80px;height:64px;border:1px dashed #b0b8c4;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:12px;color:#666;cursor:pointer;background:#fff;gap:4px;user-select:none;";
-    box.innerHTML="<span style='font-size:10px;color:#8fa3b8'>"+name+"</span><span style='font-size:10px;color:#aaa'>날인</span>";
-    box.onclick=()=>{
-      if(name===ctx.teammate){playSound('stamp');box.style.background="#e8f5e9";box.style.borderColor="#27ae60";box.innerHTML="<span style='font-size:26px'>🔴</span><span style='font-size:10px;color:#27ae60'>완료</span>";setTimeout(()=>ctx.onSuccess(),300);}
-      else{ctx.onFail("잘못된 서명란에 날인했습니다");}
-    };
-    boxWrap.appendChild(box);
-  });
-  const stamp=el("div"); stamp.style.cssText="position:fixed;pointer-events:none;font-size:26px;z-index:100;display:none;transform:translate(-50%,-50%);";
-  stamp.textContent="🔴"; document.body.appendChild(stamp);
-  const mmove=e=>{stamp.style.left=e.clientX+"px";stamp.style.top=e.clientY+"px";};
-  wrap.addEventListener("mouseenter",()=>{document.body.style.cursor="none";stamp.style.display="block";});
-  wrap.addEventListener("mouseleave",()=>{document.body.style.cursor="";stamp.style.display="none";});
-  wrap.addEventListener("mousemove",mmove);
-  return ()=>{stamp.remove();document.body.style.cursor="";};
+  return null;
 };
 
 // ===================== MINI-GAME GIMMICKS 2 =====================
@@ -946,46 +1255,82 @@ GIMMICKS.falling_approval = ctx => {
   return ()=>{done=true;if(raf)cancelAnimationFrame(raf);};
 };
 
-GIMMICKS.catch_approval = ctx => {
-  const c=docCard(ctx.teammate,"승인 요청 내용을 검토해주세요."); stageEl.appendChild(c);
-  const CW=380,CH=220,BW=100,BH=12; const cv=document.createElement("canvas"); cv.width=CW;cv.height=CH;
-  cv.style.cssText="display:block;border:1px solid #d4dbe5;border-radius:3px;margin-top:10px;background:#f0f4f9;cursor:none;";
+GIMMICKS.catch_approval = ctx=>{
+  const c=docCard(ctx.teammate,"문서를 확인해주세요."); stageEl.appendChild(c);
+  const CW=360,CH=210,CX=180,CY=95;
+  const cv=document.createElement("canvas"); cv.width=CW;cv.height=CH;
+  cv.style.cssText="display:block;margin:8px auto;cursor:default;border:1px solid #ddd;background:#f8f9fa;";
   c.appendChild(cv);
   const g=cv.getContext("2d");
-  const itemW=82,itemH=26;
-  let baskX=CW/2-BW/2,done=false,raf=null,spawnT=0;
-  const labels=["동의합니다","반대합니다","보류합니다","거부합니다","검토합니다"];
-  const items=[]; let correctOut=false;
-  function spawn(){
-    const label=labels[Math.floor(Math.random()*labels.length)];
-    const isWin=label==="동의합니다";
-    if(isWin)correctOut=true;
-    items.push({label,win:isWin,x:Math.random()*(CW-itemW),y:-itemH,spd:1.4+Math.random()*1.0,gone:false});
+
+  const BW=160,BH=120;
+  let angle=0,dragging=false,startA=0,startMA=0;
+  let fallen=false,btnX=CX,btnY=CY,btnVy=0,btnLanded=false,btnRect=null;
+  let done=false,raf=null;
+
+  function getCorner(){
+    const r=angle*Math.PI/180;
+    return {x:CX+Math.cos(r)*(BW/2)-Math.sin(r)*(BH/2), y:CY+Math.sin(r)*(BW/2)+Math.cos(r)*(BH/2)};
   }
-  const mmove=e=>{const r=cv.getBoundingClientRect();baskX=Math.max(0,Math.min(CW-BW,e.clientX-r.left-BW/2));};
-  document.addEventListener("mousemove",mmove);
-  function tick(){
-    spawnT++;
-    if(spawnT%70===0||(spawnT===160&&!correctOut)){spawn();}
-    if(spawnT===200&&!correctOut){items.push({label:"동의합니다",win:true,x:Math.random()*(CW-itemW),y:-itemH,spd:1.6,gone:false});correctOut=true;}
-    const basketY=CH-28;
-    items.forEach(b=>{
-      if(b.gone)return; b.y+=b.spd;
-      if(b.y+itemH>=basketY&&b.y<=basketY+BH&&b.x+itemW>=baskX&&b.x<=baskX+BW){
-        b.gone=true;
-        if(!done){done=true;cancelAnimationFrame(raf);b.win?ctx.onSuccess():ctx.onFail("잘못된 항목을 받았습니다");}
-      }
-      if(b.y>CH){b.gone=true;if(b.win&&!done){done=true;cancelAnimationFrame(raf);ctx.onFail("처리 실패");}}
-    });
+  function mAngle(e){const r=cv.getBoundingClientRect();return Math.atan2(e.clientY-r.top-CY,e.clientX-r.left-CX)*180/Math.PI;}
+
+  cv.addEventListener("mousemove",e=>{
+    const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+    if(btnLanded&&btnRect&&mx>btnRect.x&&mx<btnRect.x+btnRect.w&&my>btnRect.y&&my<btnRect.y+btnRect.h){cv.style.cursor="pointer";return;}
+    const cp=getCorner();const near=Math.hypot(mx-cp.x,my-cp.y)<16;
+    cv.style.cursor=dragging?"grabbing":near?"grab":"default";
+    if(dragging){
+      let na=startA+(mAngle(e)-startMA);
+      angle=Math.max(-75,Math.min(75,na));
+      if(!fallen&&angle>42){fallen=true;btnX=CX;btnY=CY;btnVy=0;}
+    }
+  });
+  cv.addEventListener("mousedown",e=>{
+    const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+    if(btnLanded&&btnRect&&mx>btnRect.x&&mx<btnRect.x+btnRect.w&&my>btnRect.y&&my<btnRect.y+btnRect.h){
+      if(!done){done=true;cancelAnimationFrame(raf);cleanup();ctx.onSuccess();}return;
+    }
+    const cp=getCorner();
+    if(Math.hypot(mx-cp.x,my-cp.y)<16){dragging=true;startA=angle;startMA=mAngle(e);}
+  });
+  const onUp=()=>{dragging=false;};
+  document.addEventListener("mouseup",onUp);
+
+  function drawRotArrow(x,y){
+    g.save();g.translate(x,y);
+    g.beginPath();g.arc(0,0,7,0.3,Math.PI*1.7);g.strokeStyle="#fff";g.lineWidth=2;g.stroke();
+    // arrowhead
+    const ex=7*Math.cos(Math.PI*1.7),ey=7*Math.sin(Math.PI*1.7);
+    g.beginPath();g.moveTo(ex,ey);g.lineTo(ex+3,ey-4);g.lineTo(ex-2,ey-3);g.closePath();g.fillStyle="#fff";g.fill();
+    g.restore();
   }
+
   function draw(){
     g.clearRect(0,0,CW,CH);
-    items.forEach(b=>{if(b.gone)return;g.fillStyle=b.win?"#27ae60":"#dde3ec";g.fillRect(b.x,b.y,itemW,itemH);g.strokeStyle=b.win?"#1e8449":"#aab4be";g.lineWidth=1;g.strokeRect(b.x,b.y,itemW,itemH);g.fillStyle=b.win?"#fff":"#444";g.font="bold 11px 맑은 고딕,sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText(b.label,b.x+itemW/2,b.y+itemH/2);});
-    g.fillStyle="#1e3a5f";g.fillRect(baskX,CH-28,BW,BH);
+    g.save();g.translate(CX,CY);g.rotate(angle*Math.PI/180);
+    // Box
+    g.fillStyle="#edf2f7";g.fillRect(-BW/2,-BH/2,BW,BH);
+    g.strokeStyle="#2c3e50";g.lineWidth=2.5;g.strokeRect(-BW/2,-BH/2,BW,BH);
+    // Corner dot
+    g.fillStyle="#2c3e50";g.beginPath();g.arc(BW/2,BH/2,10,0,Math.PI*2);g.fill();
+    drawRotArrow(BW/2,BH/2);
+    g.restore();
+
+    if(fallen){
+      if(!btnLanded){btnVy+=0.6;btnY+=btnVy;if(btnY>=CH-18){btnY=CH-18;btnLanded=true;}}
+      const bw=90,bh=26;
+      btnRect={x:btnX-bw/2,y:btnY-bh/2,w:bw,h:bh};
+      g.fillStyle="#27ae60";g.fillRect(btnRect.x,btnRect.y,btnRect.w,btnRect.h);
+      g.strokeStyle="#1e8449";g.lineWidth=1;g.strokeRect(btnRect.x,btnRect.y,btnRect.w,btnRect.h);
+      g.fillStyle="#fff";g.font="bold 12px 맑은 고딕,sans-serif";g.textAlign="center";g.textBaseline="middle";
+      g.fillText("동의합니다",btnX,btnY);
+    }
   }
-  function loop(){if(done)return;tick();draw();raf=requestAnimationFrame(loop);}
-  loop();
-  return ()=>{done=true;if(raf)cancelAnimationFrame(raf);document.removeEventListener("mousemove",mmove);};
+
+  function loop(){if(done)return;draw();raf=requestAnimationFrame(loop);}
+  raf=requestAnimationFrame(loop);
+  function cleanup(){if(raf)cancelAnimationFrame(raf);document.removeEventListener("mouseup",onUp);}
+  return cleanup;
 };
 
 GIMMICKS.tilt_approval = ctx=>{
@@ -1176,11 +1521,394 @@ function bossStage(ctx){
   return ()=>{if(cleanupMove)cleanupMove();};
 }
 
+// ===================== excel_approval =====================
+GIMMICKS.excel_approval = ctx=>{
+  const c=docCard(ctx.teammate,"첨부 파일을 검토해주세요."); stageEl.appendChild(c);
+
+  const COLS=9, ROWS=28;
+  const colLabels=["A","B","C","D","E","F","G","H","I"];
+  const categories=["교통비","숙박비","식대","회의비","소모품","접대비","출장비","통신비","교육비","복리후생"];
+  const depts=["인사팀","총무팀","기획팀","영업팀","운영팀","IT팀","법무팀","재무팀"];
+  const statuses=["정산완료","검토중","보류","미제출","승인대기","반려","확인요청","처리중"];
+  const names=["김민준","이서연","박지호","최수아","정다은","홍길동","강태양","윤하늘","임지수","오세훈"];
+
+  function randDate(){return `2024.${String(Math.floor(Math.random()*12)+1).padStart(2,"0")}.${String(Math.floor(Math.random()*28)+1).padStart(2,"0")}`;}
+  function randAmt(){return (Math.floor(Math.random()*90+1)*1000).toLocaleString()+"원";}
+  function randCell(r,col){
+    const v=(r+col)%7;
+    if(v===0)return categories[Math.floor(Math.random()*categories.length)];
+    if(v===1)return randAmt();
+    if(v===2)return depts[Math.floor(Math.random()*depts.length)];
+    if(v===3)return names[Math.floor(Math.random()*names.length)];
+    if(v===4)return randDate();
+    if(v===5)return statuses[Math.floor(Math.random()*statuses.length)];
+    return String(Math.floor(Math.random()*999)+1);
+  }
+
+  // Place 동의합니다 in a random cell (avoid row 0 = header)
+  const targetR=1+Math.floor(Math.random()*(ROWS-1));
+  const targetC=Math.floor(Math.random()*COLS);
+
+  // Outer container styled like Excel
+  const sheet=el("div");
+  sheet.style.cssText="overflow:auto;max-height:220px;margin-top:8px;border:2px solid #888;font-family:맑은 고딕,Malgun Gothic,sans-serif;font-size:11px;cursor:cell;";
+
+  const tbl=document.createElement("table");
+  tbl.style.cssText="border-collapse:collapse;background:#fff;white-space:nowrap;";
+
+  // Header row (Excel column labels)
+  const thead=document.createElement("tr");
+  // Row number corner
+  const corner=document.createElement("th");
+  corner.style.cssText="width:28px;min-width:28px;background:#e8e8e8;border:1px solid #bbb;text-align:center;position:sticky;top:0;left:0;z-index:3;";
+  thead.appendChild(corner);
+  colLabels.forEach(lbl=>{
+    const th=document.createElement("th");
+    th.style.cssText="min-width:80px;background:#e8e8e8;border:1px solid #bbb;text-align:center;padding:2px 4px;position:sticky;top:0;z-index:2;font-weight:normal;";
+    th.textContent=lbl;
+    thead.appendChild(th);
+  });
+  tbl.appendChild(thead);
+
+  for(let r=0;r<ROWS;r++){
+    const tr=document.createElement("tr");
+    // Row number
+    const rn=document.createElement("td");
+    rn.style.cssText="background:#e8e8e8;border:1px solid #bbb;text-align:center;padding:1px 4px;min-width:28px;position:sticky;left:0;z-index:1;color:#555;";
+    rn.textContent=r+1;
+    tr.appendChild(rn);
+
+    for(let col=0;col<COLS;col++){
+      const td=document.createElement("td");
+      const isTarget=r===targetR&&col===targetC;
+      td.style.cssText="border:1px solid #d0d0d0;padding:2px 6px;min-width:80px;"+(isTarget?"color:#1a5276;font-weight:bold;":"color:#222;");
+      td.textContent=isTarget?"동의합니다":randCell(r,col);
+      td.onclick=()=>{
+        if(isTarget) ctx.onSuccess();
+        // non-target clicks: no fail, no feedback — just keep searching
+      };
+      tr.appendChild(td);
+    }
+    tbl.appendChild(tr);
+  }
+
+  sheet.appendChild(tbl);
+  c.appendChild(sheet);
+  return null;
+};
+
+// ===================== parking_approval =====================
+GIMMICKS.parking_approval = ctx=>{
+  const c=docCard(ctx.teammate,"사장님 차량을 지정 구역에 주차해주세요."); stageEl.appendChild(c);
+  const CW=366,CH=290;
+  const cv=document.createElement("canvas"); cv.width=CW;cv.height=CH;
+  cv.style.cssText="display:block;margin:6px auto;border:1px solid #aaa;";
+  c.appendChild(cv);
+  const g=cv.getContext("2d");
+
+  // Layout
+  const BY=72,WY=13; // building height, walk height
+  const PARK_Y=BY+WY, PARK_H=62; // parking row
+  const LANE_Y=PARK_Y+PARK_H, LANE_H=30; // horizontal access lane
+  const OY=LANE_Y+LANE_H; // obstacle zone start
+
+  // 사장님 자리 — left spot
+  const TARGET={x:8,y:PARK_Y,w:56,h:PARK_H};
+
+  // Parked cars in other spots (collision = fail)
+  const PCARS=[
+    {x:76,y:PARK_Y,w:56,h:PARK_H,color:'#c0392b'},
+    {x:144,y:PARK_Y,w:56,h:PARK_H,color:'#2471a3'},
+    {x:212,y:PARK_Y,w:56,h:PARK_H,color:'#7f8c8d'},
+    {x:280,y:PARK_Y,w:56,h:PARK_H,color:'#8e44ad'},
+  ];
+
+  // Static obstacles in corridor (hit = fail). Two side walls + center pillar + parked cars blocking
+  const WALLS=[
+    {x:0,   y:OY,   w:42, h:50,color:'#666'}, // left wall
+    {x:324, y:OY,   w:42, h:50,color:'#666'}, // right wall
+    {x:155, y:OY+15,w:56, h:20,color:'#888'}, // center concrete barrier
+    {x:80,  y:OY+55,w:52, h:52,color:'#c0392b'}, // parked car A
+    {x:234, y:OY+50,w:52, h:52,color:'#2471a3'}, // parked car B
+    {x:0,   y:OY+115,w:105,h:12,color:'#777'}, // bottom barrier L
+    {x:261, y:OY+115,w:105,h:12,color:'#777'}, // bottom barrier R
+  ];
+
+  // Traffic cones (circles, hit = fail)
+  const CONES=[
+    {x:44, y:OY+8,r:7},{x:322,y:OY+8,r:7},   // entry
+    {x:100,y:OY+48,r:7},{x:266,y:OY+48,r:7},  // mid
+    {x:140,y:OY+80,r:7},{x:226,y:OY+80,r:7},  // inner
+  ];
+
+  const CAR_W=22,CAR_H=40,ACCEL=0.09,FRIC=0.91,MSPD=2.2,TURN=0.040;
+  let px=183,py=268,pAngle=-Math.PI/2,pSpeed=0,done=false,holdT=0,raf=null;
+  const keys={};
+  const kd=e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();};
+  const ku=e=>{keys[e.key]=false;};
+  document.addEventListener('keydown',kd);document.addEventListener('keyup',ku);
+
+  function corners(){
+    const a=pAngle+Math.PI/2,cos=Math.cos(a),sin=Math.sin(a),hw=CAR_W*0.42,hh=CAR_H*0.42;
+    return [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(([lx,ly])=>[px+cos*lx-sin*ly,py+sin*lx+cos*ly]);
+  }
+  function hitsRect(r){return corners().some(([cx,cy])=>cx>r.x&&cx<r.x+r.w&&cy>r.y&&cy<r.y+r.h);}
+  function hitsCone(c){return corners().some(([cx,cy])=>Math.hypot(cx-c.x,cy-c.y)<c.r+2);}
+
+  function update(){
+    if(done)return;
+    const up=keys['w']||keys['W']||keys['ArrowUp'],dn=keys['s']||keys['S']||keys['ArrowDown'];
+    const lt=keys['a']||keys['A']||keys['ArrowLeft'],rt=keys['d']||keys['D']||keys['ArrowRight'];
+    if(up)pSpeed=Math.min(pSpeed+ACCEL,MSPD);
+    else if(dn)pSpeed=Math.max(pSpeed-ACCEL,-MSPD*0.6);
+    else pSpeed*=FRIC;
+    if(Math.abs(pSpeed)<0.03)pSpeed=0;
+    if(lt&&Math.abs(pSpeed)>0.05)pAngle-=TURN*(pSpeed>0?1:-1);
+    if(rt&&Math.abs(pSpeed)>0.05)pAngle+=TURN*(pSpeed>0?1:-1);
+    const nx=px+Math.cos(pAngle)*pSpeed,ny=py+Math.sin(pAngle)*pSpeed;
+    // Boundary walls = stop
+    if(nx-CAR_W/2<0||nx+CAR_W/2>CW||ny+CAR_H/2>CH||ny-CAR_H/2<BY){pSpeed*=-0.2;return;}
+    px=nx;py=ny;
+    // Obstacles = fail
+    for(const pc of PCARS){if(hitsRect(pc)){if(!done){done=true;cleanup();ctx.onFail("충돌");}return;}}
+    for(const w of WALLS){if(hitsRect(w)){if(!done){done=true;cleanup();ctx.onFail("충돌");}return;}}
+    for(const c of CONES){if(hitsCone(c)){if(!done){done=true;cleanup();ctx.onFail("충돌");}return;}}
+    // Park check
+    const inB=px>TARGET.x+10&&px<TARGET.x+TARGET.w-10&&py>TARGET.y+10&&py<TARGET.y+TARGET.h-10;
+    const ang=((pAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+    const angOk=Math.min(Math.abs(ang-Math.PI*1.5),Math.PI*2-Math.abs(ang-Math.PI*1.5))<0.30;
+    if(inB&&angOk&&Math.abs(pSpeed)<0.35){holdT++;if(holdT>70){done=true;cleanup();ctx.onSuccess();}}else holdT=0;
+  }
+
+  function drawCar(cx,cy,a,w,h,col){
+    g.save();g.translate(cx,cy);g.rotate(a+Math.PI/2);
+    g.fillStyle=col;g.fillRect(-w/2,-h/2,w,h);
+    g.fillStyle='rgba(173,216,230,0.7)';g.fillRect(-w/2+2,-h/2+3,w-4,h*0.28);
+    g.fillStyle='#111';[[-w/2-1.5,-h*0.27],[w/2-2.5,-h*0.27],[-w/2-1.5,h*0.18],[w/2-2.5,h*0.18]].forEach(([wx,wy])=>g.fillRect(wx,wy,4,7));
+    g.restore();
+  }
+
+  function draw(){
+    g.clearRect(0,0,CW,CH);
+    g.fillStyle='#cdd8e4';g.fillRect(0,0,CW,BY);
+    g.fillStyle='#b5ada0';g.fillRect(8,5,CW-16,BY-5);
+    g.strokeStyle='#9a9080';g.lineWidth=1.5;g.strokeRect(8,5,CW-16,BY-5);
+    for(let wx=22;wx<CW-30;wx+=44){g.fillStyle='#a8cde0';g.fillRect(wx,12,26,18);g.fillStyle='rgba(255,255,255,0.2)';g.fillRect(wx,12,11,18);}
+    g.fillStyle='#1e3a5f';g.fillRect(CW/2-54,40,108,22);
+    g.fillStyle='#fff';g.font='bold 12px 맑은 고딕,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('원더피플',CW/2,51);
+    g.fillStyle='#c0b8aa';g.fillRect(0,BY,CW,WY);
+    g.fillStyle='#3a3a3a';g.fillRect(0,PARK_Y,CW,PARK_H);
+    // Target spot
+    g.fillStyle='rgba(243,156,18,0.2)';g.fillRect(TARGET.x+1,TARGET.y+1,TARGET.w-2,TARGET.h-2);
+    g.strokeStyle='#e67e22';g.lineWidth=2;g.strokeRect(TARGET.x,TARGET.y,TARGET.w,TARGET.h);
+    g.fillStyle='#f0a500';g.font='bold 8px sans-serif';g.textAlign='center';g.textBaseline='top';
+    g.fillText('사장님',TARGET.x+TARGET.w/2,TARGET.y+2);g.fillText('자리',TARGET.x+TARGET.w/2,TARGET.y+13);
+    // Other spots
+    PCARS.forEach(p=>{g.strokeStyle='#666';g.lineWidth=1;g.strokeRect(p.x,p.y,p.w,p.h);});
+    // Lane
+    g.fillStyle='#505050';g.fillRect(0,LANE_Y,CW,LANE_H);
+    g.strokeStyle='rgba(255,255,0,0.25)';g.lineWidth=1;g.setLineDash([8,6]);
+    g.beginPath();g.moveTo(0,LANE_Y+LANE_H/2);g.lineTo(CW,LANE_Y+LANE_H/2);g.stroke();g.setLineDash([]);
+    // Road below lane
+    g.fillStyle='#505050';g.fillRect(0,OY,CW,CH-OY);
+    g.strokeStyle='rgba(255,255,255,0.2)';g.lineWidth=1;g.setLineDash([12,10]);
+    g.beginPath();g.moveTo(CW/2,OY);g.lineTo(CW/2,CH);g.stroke();g.setLineDash([]);
+    // Walls/barriers
+    WALLS.forEach(w=>{g.fillStyle=w.color;g.fillRect(w.x,w.y,w.w,w.h);g.strokeStyle='#333';g.lineWidth=1;g.strokeRect(w.x,w.y,w.w,w.h);});
+    // Wall cars windshields
+    [{x:80,y:OY+55,w:52,h:52},{x:234,y:OY+50,w:52,h:52}].forEach(pc=>{
+      drawCar(pc.x+pc.w/2,pc.y+pc.h/2,-Math.PI/2,pc.w-4,pc.h-4,pc===WALLS[3]?'#c0392b':'#2471a3');
+    });
+    // Cones
+    CONES.forEach(c=>{
+      g.fillStyle='#e67e22';g.beginPath();g.arc(c.x,c.y,c.r,0,Math.PI*2);g.fill();
+      g.fillStyle='#fff';g.beginPath();g.arc(c.x,c.y,c.r*0.4,0,Math.PI*2);g.fill();
+    });
+    // Parked cars
+    PCARS.forEach(p=>drawCar(p.x+p.w/2,p.y+p.h/2,-Math.PI/2,p.w-4,p.h-4,p.color));
+    // Player
+    drawCar(px,py,pAngle,CAR_W,CAR_H,'#e74c3c');
+    if(holdT>0){g.fillStyle='rgba(0,0,0,0.35)';g.fillRect(px-18,py-28,36,5);g.fillStyle='#27ae60';g.fillRect(px-18,py-28,36*(holdT/70),5);}
+    g.fillStyle='rgba(0,0,0,0.45)';g.fillRect(3,CH-14,116,12);
+    g.fillStyle='#eee';g.font='8px sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText('WASD / 방향키',7,CH-8);
+  }
+
+  function loop(){if(done)return;update();draw();raf=requestAnimationFrame(loop);}
+  raf=requestAnimationFrame(loop);
+  function cleanup(){if(raf)cancelAnimationFrame(raf);document.removeEventListener('keydown',kd);document.removeEventListener('keyup',ku);}
+  return cleanup;
+};
+
+// ===================== DecoyRapidButton =====================
+GIMMICKS.DecoyRapidButton = ctx=>{
+  const c=docCard(ctx.teammate,"승인 요청 내용을 확인해주세요.");
+  stageEl.appendChild(c);
+
+  // Build inner UI
+  const wrap=document.createElement("div");
+  wrap.style.cssText="font-family:sans-serif;font-size:13px;color:#222;";
+
+  // Document info table
+  const tbl=document.createElement("table");
+  tbl.style.cssText="width:100%;border-collapse:collapse;margin-bottom:8px;";
+  const rows=[["문서번호","REQ-2024-0847"],["기안자","김민준 / 경영지원팀"],["결재구분","전자결재"],["상태","동의 대기"]];
+  const realPos=Math.floor(Math.random()*5); // 0~4
+  let realBtn=null;
+  rows.forEach((r,ri)=>{
+    const tr=document.createElement("tr");
+    ["th","td"].forEach((tag,ci)=>{
+      const td=document.createElement(tag);
+      td.style.cssText="padding:4px 6px;border:1px solid #ccc;background:"+(ci===0?"#f0f0f0":"#fff")+";";
+      td.textContent=r[ci];
+      tr.appendChild(td);
+      // realPos=1: status row right side
+      if(realPos===1&&ri===3&&ci===1){
+        const rb=document.createElement("button");
+        rb.textContent="동의합니다"; rb.className="b green";
+        rb.style.cssText="float:right;font-size:11px;padding:2px 8px;margin-left:6px;";
+        rb.onclick=()=>{done=true;cleanup();ctx.onSuccess();};
+        td.appendChild(rb); realBtn=rb;
+      }
+    });
+    tbl.appendChild(tr);
+  });
+  wrap.appendChild(tbl);
+
+  // Attachment section header
+  const attHdr=document.createElement("div");
+  attHdr.style.cssText="background:#e8ecf0;padding:4px 8px;border:1px solid #ccc;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;";
+  const attLbl=document.createElement("span"); attLbl.textContent="첨부파일 (1)";
+  attHdr.appendChild(attLbl);
+  if(realPos===2){
+    const rb=document.createElement("button"); rb.textContent="동의합니다"; rb.className="b green";
+    rb.style.cssText="font-size:11px;padding:2px 8px;";
+    rb.onclick=()=>{done=true;cleanup();ctx.onSuccess();}; realBtn=rb;
+    attHdr.appendChild(rb);
+  }
+  wrap.appendChild(attHdr);
+  const attFile=document.createElement("div");
+  attFile.style.cssText="font-size:11px;color:#555;padding:2px 8px;margin-bottom:8px;border:1px solid #ddd;border-top:none;";
+  attFile.textContent="재택근무_운영방침_v3.pdf";
+  wrap.appendChild(attFile);
+
+  // Progress card (right-ish inline block)
+  const prog=document.createElement("div");
+  prog.style.cssText="border:1px solid #ccc;padding:6px 10px;margin-bottom:8px;background:#fafafa;font-size:12px;";
+  prog.innerHTML="<b>진행 현황</b><br>기안 → <u>결재 대기</u> → 완료<br><br>";
+  if(realPos===3){
+    const rb=document.createElement("button"); rb.textContent="동의합니다"; rb.className="b green";
+    rb.style.cssText="font-size:11px;padding:2px 8px;margin-top:4px;";
+    rb.onclick=()=>{done=true;cleanup();ctx.onSuccess();}; realBtn=rb;
+    prog.appendChild(rb);
+  }
+  wrap.appendChild(prog);
+
+  // Breadcrumb with optional real button
+  const bc=document.createElement("div");
+  bc.style.cssText="font-size:11px;color:#666;margin-bottom:6px;";
+  bc.innerHTML="홈 &gt; 전자결재 &gt; 수신결재함 &gt; REQ-2024-0847";
+  if(realPos===4){
+    const rb=document.createElement("button"); rb.textContent="동의합니다"; rb.className="b green";
+    rb.style.cssText="font-size:11px;padding:1px 7px;margin-left:8px;";
+    rb.onclick=()=>{done=true;cleanup();ctx.onSuccess();}; realBtn=rb;
+    bc.appendChild(rb);
+  }
+  wrap.insertBefore(bc, wrap.firstChild);
+
+  // Doc number badge area — realPos===0
+  if(realPos===0){
+    const badgeRow=document.createElement("div");
+    badgeRow.style.cssText="margin-bottom:6px;display:flex;align-items:center;gap:8px;";
+    const badge=document.createElement("span");
+    badge.style.cssText="background:#1e3a5f;color:#fff;padding:2px 8px;border-radius:3px;font-size:11px;";
+    badge.textContent="REQ-2024-0847";
+    badgeRow.appendChild(badge);
+    const rb=document.createElement("button"); rb.textContent="동의합니다"; rb.className="b green";
+    rb.style.cssText="font-size:11px;padding:2px 8px;";
+    rb.onclick=()=>{done=true;cleanup();ctx.onSuccess();}; realBtn=rb;
+    badgeRow.appendChild(rb);
+    wrap.insertBefore(badgeRow, wrap.children[1]); // after breadcrumb
+  }
+
+  c.appendChild(wrap);
+
+  // ── Fake bottom action area ──
+  const actionArea=document.createElement("div");
+  actionArea.style.cssText="margin-top:10px;padding:8px;border-top:2px solid #ccc;display:flex;gap:8px;flex-wrap:wrap;align-items:center;";
+
+  const fakeTexts=["반대합니다","보류합니다","거절합니다","검토합니다","동의하지 않습니다"];
+  const typos=["동의합니디","동의힙니다","동의합ㄴ니다","동의합니다.","동의 합니다"];
+  let done=false, timers=[], ivs=[];
+
+  // Real button styles: neutral gray, small, no green
+  const realBtnStyle="font-size:11px;padding:2px 8px;background:#8899aa;color:#fff;border:none;border-radius:2px;cursor:pointer;";
+
+  // Patch all realBtn clicks to use done/cleanup
+  [realBtn].filter(Boolean).forEach(rb=>{
+    rb.className=""; rb.style.cssText=realBtnStyle;
+    rb.onclick=()=>{if(!done){done=true;cleanup();ctx.onSuccess();}};
+  });
+
+  function cleanup(){timers.forEach(clearTimeout);ivs.forEach(clearInterval);}
+
+  function setRed(btn){btn.style.background="#c0392b";btn.style.color="#fff";}
+  function setGreen(btn){btn.style.background="#27ae60";btn.style.color="#fff";}
+
+  function makeFake(type){
+    const btn=document.createElement("button");
+    btn.style.cssText="border:none;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:13px;transition:none;";
+    btn.onclick=()=>{if(!done){done=true;cleanup();ctx.onFail("처리 오류");}};
+
+    if(type==="rapid"){
+      // Green "동의합니다" briefly, red for other texts — all fail
+      const cycle=[
+        {t:"동의합니다",green:true,dur:300},
+        {t:"반대합니다",green:false,dur:700},
+        {t:"거절합니다",green:false,dur:600},
+        {t:"보류합니다",green:false,dur:650},
+      ];
+      let ci=0;
+      function step(){
+        const cur=cycle[ci];
+        btn.textContent=cur.t;
+        cur.green?setGreen(btn):setRed(btn);
+        ci=(ci+1)%cycle.length;
+        const iv2=setTimeout(step,cur.dur);
+        ivs.push(iv2);
+      }
+      step();
+    } else if(type==="hover_text"){
+      // Shows a fake text, hover shows another fake text
+      btn.textContent=fakeTexts[Math.floor(Math.random()*fakeTexts.length)];
+      setRed(btn);
+      const alt=fakeTexts[Math.floor(Math.random()*fakeTexts.length)];
+      btn.addEventListener("mouseenter",()=>{btn.textContent=alt;});
+      btn.addEventListener("mouseleave",()=>{btn.textContent=btn.dataset.orig||btn.textContent;});
+    } else if(type==="hover_shift"){
+      // Shows a typo, shifts on hover
+      btn.textContent=typos[Math.floor(Math.random()*typos.length)];
+      setRed(btn);
+      btn.addEventListener("mouseenter",()=>{btn.style.transform="translateY(3px)";});
+      btn.addEventListener("mouseleave",()=>{btn.style.transform="";});
+    } else {
+      // plain: just a wrong text, red
+      btn.textContent=fakeTexts[Math.floor(Math.random()*fakeTexts.length)];
+      setRed(btn);
+    }
+    return btn;
+  }
+
+  shuffle(["rapid","hover_text","hover_shift","plain"]).forEach(t=>actionArea.appendChild(makeFake(t)));
+  c.appendChild(actionArea);
+  return cleanup;
+};
+
 // ===================== START / RUN =====================
 function startRun(){
   clearStage();
+  state.usedWordOrder=false;
   // 미니게임(캔버스 인터랙티브) 65%, 콤보번들(단순클릭묶음) 35%
-  const MINI_SET=new Set(['conveyor_approval','running_button','brick_approval','falling_approval','whack_approval','catch_approval','tilt_approval','fold_approval','escape_approval','forbidden_zones','assemble_approval','hanko_approval']);
+  const MINI_SET=new Set(['conveyor_approval','running_button','brick_approval','falling_approval','whack_approval','catch_approval','tilt_approval','fold_approval','escape_approval','forbidden_zones','assemble_approval','spot_difference','DecoyRapidButton','excel_approval','parking_approval']);
   const allK=Object.keys(GIMMICKS).filter(k=>k!=='boss_send_to_all');
   const NEW_MINI=['tilt_approval','fold_approval','escape_approval'].filter(k=>GIMMICKS[k]);
   const oldMiniPool=shuffle(allK.filter(k=>MINI_SET.has(k)&&!NEW_MINI.includes(k)));
@@ -1201,12 +1929,42 @@ function startRun(){
 function startScreen(){
   clearStage(); showSidebar(false); $("progfill").style.width="0";
   const wrap=el("div","panel-wrap");
+  wrap.style.cssText="display:flex;align-items:center;justify-content:center;padding:36px 16px;min-height:calc(100vh - 80px);";
   const p=el("div","panel");
-  p.appendChild(el("div","panel-title","Send to All"));
+  p.style.cssText="max-width:500px;width:100%;padding:0;overflow:hidden;text-align:center;";
+
+  // Title bar
+  const titleBar=el("div");
+  titleBar.style.cssText="background:linear-gradient(#526D8F,#243B63);color:#fff;padding:10px 20px;font-size:11px;font-weight:700;letter-spacing:.5px;border-bottom:2px solid #14263B;text-align:left;display:flex;align-items:center;gap:8px;";
+  titleBar.innerHTML='<span style="display:flex;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#EF476F;border:1px solid #14263B;display:inline-block;"></span><span style="width:10px;height:10px;border-radius:50%;background:#FFD166;border:1px solid #14263B;display:inline-block;"></span><span style="width:10px;height:10px;border-radius:50%;background:#06D6A0;border:1px solid #14263B;display:inline-block;"></span></span> 전자결재 시스템 — 새 문서 도착';
+  p.appendChild(titleBar);
+
+  const inner=el("div");
+  inner.style.cssText="padding:32px 40px 36px;";
+  p.appendChild(inner);
+
+  // Logo SVG inline
+  const logoWrap=el("div");
+  logoWrap.style.cssText="display:flex;justify-content:center;margin-bottom:20px;";
+  logoWrap.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="118" viewBox="0 0 560 220"><defs><filter id="ls" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="6" dy="8" stdDeviation="0" flood-color="#001B2A" flood-opacity="0.9"/></filter></defs><rect width="560" height="220" rx="22" fill="none"/><g filter="url(#ls)" font-family="Arial Black,Impact,sans-serif" font-weight="900"><text x="28" y="78" font-size="62" fill="#F7FAFF" stroke="#0D2035" stroke-width="6">SEND</text><text x="26" y="153" font-size="76" fill="#FFD166" stroke="#0D2035" stroke-width="7">TO ALL</text></g><g transform="translate(384 24) rotate(10)"><rect x="0" y="0" width="112" height="76" rx="8" fill="#F7FAFF" stroke="#0D2035" stroke-width="6"/><path d="M7 9 L56 45 L105 9" fill="none" stroke="#0D2035" stroke-width="6" stroke-linecap="round"/><circle cx="102" cy="6" r="18" fill="#EF476F" stroke="#0D2035" stroke-width="5"/><text x="96" y="14" font-family="Arial Black" font-size="22" fill="#fff">!</text></g><rect x="76" y="170" width="315" height="30" rx="15" fill="#243B63" stroke="#7AA5D8" stroke-width="2"/><text x="100" y="191" font-family="Malgun Gothic,sans-serif" font-size="17" fill="#EAF4FF" font-weight="800">재택근무 부활 프로젝트</text></svg>`;
+  inner.appendChild(logoWrap);
+
+  // Flavor badge
+  const badge=el("div");
+  badge.style.cssText="display:inline-block;background:#243B63;border:1px solid #415A77;color:#FFD166;font-size:11px;font-weight:700;padding:4px 14px;border-radius:2px;margin-bottom:18px;letter-spacing:.3px;";
+  badge.textContent="전자결재 승인 미션";
+  inner.appendChild(badge);
+
   const sub=el("div","panel-sub");
-  sub.innerHTML="새로운 전자결재 요청이 있습니다.<br>문서를 확인하고 절차를 진행해주세요.";
-  p.appendChild(sub);
-  const b=el("button","b green","문서 확인"); b.onclick=()=>startRun(); p.appendChild(b);
+  sub.style.cssText="color:#415A77;font-size:13px;line-height:1.8;margin:0 0 24px;text-align:left;background:#EAE7E0;border:1px solid #D0CCBF;border-radius:3px;padding:12px 16px;";
+  sub.innerHTML="새로운 전자결재 요청이 도착했습니다.<br>14명의 동의를 받아 전사 공지를 발송하세요.";
+  inner.appendChild(sub);
+
+  const b=el("button","b big","▶ 문서 확인 시작");
+  b.style.cssText="width:100%;background:#FFD166;color:#001B3D;border-color:#d4a800;border-bottom-color:#a07800;font-weight:900;font-size:17px;height:54px;";
+  b.onclick=()=>startRun();
+  inner.appendChild(b);
+
   wrap.appendChild(p); stageEl.appendChild(wrap);
 }
 
