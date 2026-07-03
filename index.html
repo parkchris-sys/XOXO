@@ -774,58 +774,6 @@ GIMMICKS.brick_approval = ctx => {
   return ()=>{done=true;if(raf)cancelAnimationFrame(raf);document.removeEventListener("mousemove",mmove);};
 };
 
-GIMMICKS.claw_approval = ctx => {
-  const c = docCard(ctx.teammate, "승인 항목을 확인해주세요."); stageEl.appendChild(c);
-  const cv=document.createElement("canvas");cv.width=380;cv.height=240;
-  cv.style.cssText="display:block;border:1px solid #d4dbe5;border-radius:3px;margin-top:10px;cursor:crosshair;background:#eef2f7;";
-  c.appendChild(cv);
-  const g=cv.getContext("2d"),CW=380,CH=240;
-  const options=shuffle([{label:"동의합니다",win:true},{label:"반대합니다",win:false},{label:"보류합니다",win:false},{label:"거부합니다",win:false}]);
-  const bW=76,bH=30,bY=CH-55,spacing=CW/(options.length+1);
-  options.forEach((b,i)=>{b.bx=spacing*(i+1)-bW/2;});
-  const HOME=28;
-  let clawX=CW/2,clawY=HOME,phase="idle",grabbed=null,done=false,raf=null;
-  cv.onmousemove=e=>{if(phase!=="idle")return;const r=cv.getBoundingClientRect();clawX=Math.max(20,Math.min(CW-20,e.clientX-r.left));};
-  cv.onclick=()=>{if(phase==="idle"&&!done)phase="drop";};
-  function tick(){
-    if(phase==="drop"){
-      clawY=Math.min(bY,clawY+5);
-      if(clawY>=bY){grabbed=options.find(b=>clawX>=b.bx&&clawX<=b.bx+bW)||null;phase="rise";}
-    } else if(phase==="rise"){
-      clawY=Math.max(HOME,clawY-4);
-      if(clawY<=HOME){done=true;phase="done";cancelAnimationFrame(raf);
-        setTimeout(()=>grabbed&&grabbed.win?ctx.onSuccess():ctx.onFail("잘못된 항목을 선택했습니다"),300);}
-    }
-  }
-  function drawClaw(){
-    g.beginPath();g.moveTo(clawX,HOME-8);g.lineTo(clawX,clawY-12);g.strokeStyle="#555";g.lineWidth=2;g.stroke();
-    g.fillStyle="#1e3a5f";g.fillRect(clawX-18,HOME-18,36,12);
-    g.beginPath();g.moveTo(clawX,clawY-12);g.lineTo(clawX-13,clawY);g.strokeStyle="#1e3a5f";g.lineWidth=3;g.stroke();
-    g.beginPath();g.moveTo(clawX,clawY-12);g.lineTo(clawX+13,clawY);g.strokeStyle="#1e3a5f";g.lineWidth=3;g.stroke();
-    if(grabbed&&phase==="rise"){
-      g.fillStyle=grabbed.win?"#27ae60":"#dde3ec";g.fillRect(clawX-bW/2,clawY,bW,bH);
-      g.fillStyle=grabbed.win?"#fff":"#444";g.font="bold 11px 맑은 고딕,sans-serif";g.textAlign="center";g.textBaseline="middle";
-      g.fillText(grabbed.label,clawX,clawY+bH/2);
-    }
-  }
-  function draw(){
-    g.clearRect(0,0,CW,CH);
-    g.strokeStyle="#c0c8d4";g.lineWidth=2;g.strokeRect(4,4,CW-8,CH-8);
-    g.beginPath();g.moveTo(12,HOME-8);g.lineTo(CW-12,HOME-8);g.strokeStyle="#9aa8b8";g.lineWidth=1;g.stroke();
-    options.forEach(b=>{
-      if(grabbed===b&&phase==="rise")return;
-      g.fillStyle=b.win?"#27ae60":"#dde3ec";g.fillRect(b.bx,bY,bW,bH);
-      g.strokeStyle=b.win?"#1e8449":"#aab4be";g.lineWidth=1;g.strokeRect(b.bx,bY,bW,bH);
-      g.fillStyle=b.win?"#fff":"#444";g.font="bold 11px 맑은 고딕,sans-serif";g.textAlign="center";g.textBaseline="middle";
-      g.fillText(b.label,b.bx+bW/2,bY+bH/2);
-    });
-    drawClaw();
-    if(phase==="idle"){g.fillStyle="#8fa3b8";g.font="11px 맑은 고딕,sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText("클릭",CW/2,CH-8);}
-  }
-  function loop(){if(done)return;tick();draw();raf=requestAnimationFrame(loop);}
-  loop();
-  return ()=>{done=true;if(raf)cancelAnimationFrame(raf);};
-};
 
 GIMMICKS.conveyor_approval = ctx => {
   const c = docCard(ctx.teammate, "전자결재 승인 항목을 확인해주세요."); stageEl.appendChild(c);
@@ -1158,50 +1106,6 @@ GIMMICKS.escape_approval = ctx=>{
   return cleanup;
 };
 
-GIMMICKS.breakout_approval = ctx=>{
-  const c=docCard(ctx.teammate,"결재 보류 항목을 검토 중입니다."); stageEl.appendChild(c);
-  const CW=370,CH=240; const cv=document.createElement("canvas"); cv.width=CW;cv.height=CH;
-  cv.style.cssText="display:block;margin:8px auto;cursor:none;background:#f4f6f9;";
-  c.appendChild(cv); const g=cv.getContext("2d");
-  const PW=80,PH=8,BR=7;
-  let px=CW/2-PW/2,bx=CW/2,by=CH-50,bdx=2.2,bdy=-2.8,done=false,raf=null,btnVis=false;
-  const lbls=["보류","검토","재확인","첨부누락","권한확인","승인대기"];
-  const bricks=[]; const BW=88,BH=22,COLS=3,ROWS=2,sx=(CW-(3*BW+2*10))/2;
-  for(let r=0;r<ROWS;r++) for(let cc=0;cc<COLS;cc++) bricks.push({x:sx+cc*(BW+10),y:44+r*(BH+8),w:BW,h:BH,alive:true,lbl:lbls[r*COLS+cc]});
-  const BTN={x:CW/2-55,y:CH/2-18,w:110,h:36};
-  const mm=e=>{if(btnVis)return;const r=cv.getBoundingClientRect();px=Math.max(0,Math.min(CW-PW,e.clientX-r.left-PW/2));};
-  cv.addEventListener("mousemove",mm);
-  cv.onclick=e=>{if(!done&&btnVis){const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;if(mx>BTN.x&&mx<BTN.x+BTN.w&&my>BTN.y&&my<BTN.y+BTN.h){done=true;cleanup();ctx.onSuccess();}}};
-  function draw(){
-    g.clearRect(0,0,CW,CH);
-    bricks.forEach(b=>{if(!b.alive)return;g.fillStyle="#dde3ec";g.fillRect(b.x,b.y,b.w,b.h);g.strokeStyle="#b0bac4";g.lineWidth=1;g.strokeRect(b.x,b.y,b.w,b.h);g.fillStyle="#445566";g.font="bold 10px sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText(b.lbl,b.x+b.w/2,b.y+b.h/2);});
-    if(btnVis){g.fillStyle="#27ae60";g.fillRect(BTN.x,BTN.y,BTN.w,BTN.h);g.fillStyle="#fff";g.font="bold 12px sans-serif";g.textAlign="center";g.textBaseline="middle";g.fillText("동의합니다",BTN.x+BTN.w/2,BTN.y+BTN.h/2);}
-    else{g.beginPath();g.arc(bx,by,BR,0,Math.PI*2);g.fillStyle="#1e3a5f";g.fill();}
-    g.fillStyle="#1e3a5f";g.fillRect(px,CH-PH-6,PW,PH);
-  }
-  function loop(){
-    if(done)return;
-    bx+=bdx;by+=bdy;
-    if(bx-BR<0){bx=BR;bdx=Math.abs(bdx);}if(bx+BR>CW){bx=CW-BR;bdx=-Math.abs(bdx);}
-    if(by-BR<0){by=BR;bdy=Math.abs(bdy);}
-    const py2=CH-PH-6;
-    if(by+BR>=py2&&bdy>0&&bx>=px-4&&bx<=px+PW+4){bdy=-Math.abs(bdy);bdx=((bx-(px+PW/2))/(PW/2))*4;}
-    if(by-BR>CH){done=true;cleanup();ctx.onFail("처리 실패");return;}
-    bricks.forEach(b=>{
-      if(!b.alive)return;
-      if(bx+BR>b.x&&bx-BR<b.x+b.w&&by+BR>b.y&&by-BR<b.y+b.h){
-        b.alive=false;
-        const ot=by+BR-b.y,ob=b.y+b.h-(by-BR),ol=bx+BR-b.x,or2=b.x+b.w-(bx-BR);
-        if(Math.min(ot,ob)<Math.min(ol,or2))bdy=-bdy;else bdx=-bdx;
-      }
-    });
-    if(!btnVis&&bricks.every(b=>!b.alive)){btnVis=true;cv.style.cursor="pointer";cancelAnimationFrame(raf);draw();return;}
-    draw();raf=requestAnimationFrame(loop);
-  }
-  raf=requestAnimationFrame(loop);
-  function cleanup(){cancelAnimationFrame(raf);cv.removeEventListener("mousemove",mm);}
-  return cleanup;
-};
 
 // ===================== BOSS =====================
 function bossStage(ctx){
@@ -1276,9 +1180,9 @@ function bossStage(ctx){
 function startRun(){
   clearStage();
   // 미니게임(캔버스 인터랙티브) 65%, 콤보번들(단순클릭묶음) 35%
-  const MINI_SET=new Set(['conveyor_approval','running_button','brick_approval','falling_approval','whack_approval','claw_approval','catch_approval','tilt_approval','fold_approval','escape_approval','breakout_approval','forbidden_zones','assemble_approval','hanko_approval']);
+  const MINI_SET=new Set(['conveyor_approval','running_button','brick_approval','falling_approval','whack_approval','catch_approval','tilt_approval','fold_approval','escape_approval','forbidden_zones','assemble_approval','hanko_approval']);
   const allK=Object.keys(GIMMICKS).filter(k=>k!=='boss_send_to_all');
-  const NEW_MINI=['tilt_approval','fold_approval','escape_approval','breakout_approval'].filter(k=>GIMMICKS[k]);
+  const NEW_MINI=['tilt_approval','fold_approval','escape_approval'].filter(k=>GIMMICKS[k]);
   const oldMiniPool=shuffle(allK.filter(k=>MINI_SET.has(k)&&!NEW_MINI.includes(k)));
   const comboPool=shuffle(allK.filter(k=>k.startsWith('combo_')));
   // 65% 미니: 신규4 + 구5 = 9스테이지
